@@ -9,6 +9,27 @@ mkdir -p /run/nginx
 mkdir -p /var/log/supervisor
 mkdir -p /var/log/nginx
 
+# Çevre değişkenlerini görüntüle
+echo "Environment variables:"
+echo "DB_CONNECTION: $DB_CONNECTION"
+echo "DB_HOST: $DB_HOST"
+echo "DB_PORT: $DB_PORT"
+echo "DB_DATABASE: $DB_DATABASE"
+echo "DB_USERNAME: $DB_USERNAME"
+
+# Tüm uygulama dizinini listele (debug için)
+ls -la /var/www/html/
+
+# Ağ bağlantılarını test et
+echo "Testing network connectivity..."
+echo "Trying to resolve host..."
+nslookup dpg-cvkkl6l6ubrc73fq9b6g-a || echo "DNS resolution failed!"
+
+# Veritabanı bağlantısını test et
+echo "Testing database connection..."
+echo "Testing connection to dpg-cvkkl6l6ubrc73fq9b6g-a:5432..."
+nc -zv dpg-cvkkl6l6ubrc73fq9b6g-a 5432 || echo "Connection failed!"
+
 # Composer bağımlılıklarını kur
 echo "Installing Composer dependencies..."
 composer install --no-dev --optimize-autoloader
@@ -19,93 +40,36 @@ if [ ! -f .env ]; then
     cp .env.example .env
 fi
 
+# .env dosyasını manuel olarak yapılandır
+echo "Configuring .env file manually..."
+sed -i "s|DB_CONNECTION=.*|DB_CONNECTION=pgsql|" .env
+sed -i "s|DB_HOST=.*|DB_HOST=dpg-cvkkl6l6ubrc73fq9b6g-a|" .env
+sed -i "s|DB_PORT=.*|DB_PORT=5432|" .env
+sed -i "s|DB_DATABASE=.*|DB_DATABASE=chat_ake6|" .env
+sed -i "s|DB_USERNAME=.*|DB_USERNAME=chat_ake6_user|" .env
+sed -i "s|DB_PASSWORD=.*|DB_PASSWORD=5mijBS3BEa5bXxFKj0DgF0cUsQOBLkGP|" .env
+
+# Özel veritabanı yapılandırma dosyasını kopyala
+echo "Copying custom database configuration..."
+cp /var/www/html/database_config.php /var/www/html/config/database.custom.php
+cp /var/www/html/db_override.php /var/www/html/bootstrap/db_override.php
+
+# Laravel bootstrap dosyasını düzenle
+if [ -f /var/www/html/bootstrap/app.php ]; then
+    echo "Modifying bootstrap/app.php to load database override..."
+    sed -i "/^return \$app;/i // Load database override\\nrequire_once __DIR__ . '/db_override.php';" /var/www/html/bootstrap/app.php
+fi
+
+# Config dosyalarını temizle
+php artisan config:clear
+
 # Uygulama anahtarı oluştur
 echo "Generating application key..."
 php artisan key:generate --force
 
-# Yapılandırma önbelleğini temizle ve yeniden oluştur
-echo "Clearing and caching configuration..."
-php artisan config:clear
-php artisan config:cache
-
-# Rota önbelleğini temizle ve yeniden oluştur
-echo "Clearing and caching routes..."
-php artisan route:clear
-php artisan route:cache
-
-# Gerekli izinleri ver
-echo "Setting directory permissions..."
-chmod -R 775 storage bootstrap/cache
-chown -R nginx:nginx storage bootstrap/cache
-
 # PostgreSQL veritabanı için migrationları çalıştır
 echo "Running migrations..."
 php artisan migrate --force
-
-# Migration sorunlarını çözmek için manuel yöntem kullan (ihtiyaç duyulursa)
-echo "Running migrations with conflict resolution if needed..."
-
-# Migrationları çalıştır ama problemi çözecek şekilde
-cat > /tmp/fix_migrations.php << 'EOF'
-<?php
-require_once __DIR__ . '/vendor/autoload.php';
-$app = require_once __DIR__ . '/bootstrap/app.php';
-$kernel = $app->make(Illuminate\Contracts\Console\Kernel::class);
-$kernel->bootstrap();
-
-use Illuminate\Support\Facades\Schema;
-use Illuminate\Support\Facades\DB;
-use Illuminate\Database\Schema\Blueprint;
-
-// Temel tabloları oluştur
-$migrations = glob(__DIR__ . '/database/migrations/*.php');
-usort($migrations, function($a, $b) {
-    return basename($a) <=> basename($b);
-});
-
-// 2025_03_10_202007 ile başlayan migrationları atla
-$filtered = array_filter($migrations, function($path) {
-    return !str_contains(basename($path), '2025_03_10_202007');
-});
-
-// Migrationların durumunu kontrol et, eğer başarısız olmuşsa manuel olarak çalıştır
-try {
-    $tables = DB::select('SELECT tablename FROM pg_catalog.pg_tables WHERE schemaname = \'public\'');
-    if (count($tables) < 5) { // Ana tablolar oluşturulmamışsa
-        echo "Tables not created properly, running manual migrations...\n";
-        
-        foreach ($filtered as $file) {
-            $migration = basename($file, '.php');
-            echo "Running migration: $migration\n";
-            $class = require $file;
-            $class->up();
-            
-            // Migration kaydını ekle
-            if (!str_contains($migration, '2025_03_10_202007')) {
-                DB::table('migrations')->insert([
-                    'migration' => $migration,
-                    'batch' => 1
-                ]);
-            }
-        }
-        echo "Manual migrations completed successfully\n";
-    } else {
-        echo "Tables already created, skipping manual migrations\n";
-    }
-} catch (\Exception $e) {
-    echo "Error checking tables: " . $e->getMessage() . "\n";
-}
-EOF
-
-php /tmp/fix_migrations.php
-echo "Migration process completed."
-
-# NPM paketlerini yükle ve derle (eğer gerekliyse)
-if [ -f package.json ]; then
-    echo "Installing and building NPM packages..."
-    npm ci --quiet
-    npm run build
-fi
 
 # Supervisor için yapılandırma oluştur
 echo "Configuring Supervisor..."
