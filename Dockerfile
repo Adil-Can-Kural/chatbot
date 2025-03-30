@@ -40,11 +40,9 @@ COPY --from=composer:latest /usr/bin/composer /usr/bin/composer
 # Scripts dizinini oluştur
 RUN mkdir -p /var/www/html/scripts
 
-# Betik ve konfigürasyon dosyalarını kopyala
+# Betik dosyalarını kopyala
 COPY scripts/build.sh /var/www/html/scripts/
 COPY scripts/start.sh /var/www/html/scripts/
-COPY database_config.php /var/www/html/
-COPY db_override.php /var/www/html/
 
 # Gerekli izinleri ayarla
 RUN chmod +x /var/www/html/scripts/build.sh && \

@@ -49,16 +49,79 @@ sed -i "s|DB_DATABASE=.*|DB_DATABASE=chat_ake6|" .env
 sed -i "s|DB_USERNAME=.*|DB_USERNAME=chat_ake6_user|" .env
 sed -i "s|DB_PASSWORD=.*|DB_PASSWORD=5mijBS3BEa5bXxFKj0DgF0cUsQOBLkGP|" .env
 
-# Özel veritabanı yapılandırma dosyasını kopyala
-echo "Copying custom database configuration..."
-cp /var/www/html/database_config.php /var/www/html/config/database.custom.php
-cp /var/www/html/db_override.php /var/www/html/bootstrap/db_override.php
+# Doğrudan database.php yapılandırma dosyasını oluştur
+echo "Creating database config file directly..."
+mkdir -p /var/www/html/config
+cat > /var/www/html/config/database.php << EOF
+<?php
 
-# Laravel bootstrap dosyasını düzenle
-if [ -f /var/www/html/bootstrap/app.php ]; then
-    echo "Modifying bootstrap/app.php to load database override..."
-    sed -i "/^return \$app;/i // Load database override\\nrequire_once __DIR__ . '/db_override.php';" /var/www/html/bootstrap/app.php
-fi
+return [
+    'default' => env('DB_CONNECTION', 'pgsql'),
+    'connections' => [
+        'pgsql' => [
+            'driver' => 'pgsql',
+            'host' => 'dpg-cvkkl6l6ubrc73fq9b6g-a',
+            'port' => 5432,
+            'database' => 'chat_ake6',
+            'username' => 'chat_ake6_user',
+            'password' => '5mijBS3BEa5bXxFKj0DgF0cUsQOBLkGP',
+            'charset' => 'utf8',
+            'prefix' => '',
+            'prefix_indexes' => true,
+            'schema' => 'public',
+            'sslmode' => 'prefer',
+        ],
+        'sqlite' => [
+            'driver' => 'sqlite',
+            'url' => env('DATABASE_URL'),
+            'database' => env('DB_DATABASE', database_path('database.sqlite')),
+            'prefix' => '',
+            'foreign_key_constraints' => env('DB_FOREIGN_KEYS', true),
+        ],
+        'mysql' => [
+            'driver' => 'mysql',
+            'url' => env('DATABASE_URL'),
+            'host' => env('DB_HOST', '127.0.0.1'),
+            'port' => env('DB_PORT', '3306'),
+            'database' => env('DB_DATABASE', 'forge'),
+            'username' => env('DB_USERNAME', 'forge'),
+            'password' => env('DB_PASSWORD', ''),
+            'unix_socket' => env('DB_SOCKET', ''),
+            'charset' => 'utf8mb4',
+            'collation' => 'utf8mb4_unicode_ci',
+            'prefix' => '',
+            'prefix_indexes' => true,
+            'strict' => true,
+            'engine' => null,
+            'options' => extension_loaded('pdo_mysql') ? array_filter([
+                PDO::MYSQL_ATTR_SSL_CA => env('MYSQL_ATTR_SSL_CA'),
+            ]) : [],
+        ],
+    ],
+    'migrations' => 'migrations',
+    'redis' => [
+        'client' => env('REDIS_CLIENT', 'phpredis'),
+        'options' => [
+            'cluster' => env('REDIS_CLUSTER', 'redis'),
+            'prefix' => env('REDIS_PREFIX', ''),
+        ],
+        'default' => [
+            'url' => env('REDIS_URL'),
+            'host' => env('REDIS_HOST', '127.0.0.1'),
+            'password' => env('REDIS_PASSWORD', null),
+            'port' => env('REDIS_PORT', '6379'),
+            'database' => env('REDIS_DB', '0'),
+        ],
+        'cache' => [
+            'url' => env('REDIS_URL'),
+            'host' => env('REDIS_HOST', '127.0.0.1'),
+            'password' => env('REDIS_PASSWORD', null),
+            'port' => env('REDIS_PORT', '6379'),
+            'database' => env('REDIS_CACHE_DB', '1'),
+        ],
+    ],
+];
+EOF
 
 # Config dosyalarını temizle
 php artisan config:clear
