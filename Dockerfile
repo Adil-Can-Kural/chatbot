@@ -35,23 +35,21 @@ RUN docker-php-ext-configure gd --with-freetype --with-jpeg --with-webp \
 # Composer kur
 COPY --from=composer:latest /usr/bin/composer /usr/bin/composer
 
-# Scripts dizinini önce kopyala
-COPY ./scripts /var/www/html/scripts/
-
-# Gerekli izinleri ayarla ve satır sonlarını düzelt
-RUN chmod +x /var/www/html/scripts/build.sh && \
-    chmod +x /var/www/html/scripts/start.sh && \
-    dos2unix /var/www/html/scripts/*.sh
-
-# Kalan uygulama kodlarını kopyala
+# Tüm uygulama kodlarını kopyala
 COPY . /var/www/html/
 
-# Nginx konfigürasyonu
+# Nginx konfigürasyonu tekrar kopyala (eğer üzerine yazıldıysa)
 COPY ./nginx/default.conf /etc/nginx/http.d/default.conf
+
+# Gerekli izinleri ayarla ve satır sonlarını düzelt
+RUN dos2unix /var/www/html/scripts/*.sh && \
+    chmod +x /var/www/html/scripts/build.sh && \
+    chmod +x /var/www/html/scripts/start.sh && \
+    ls -la /var/www/html/scripts/
 
 # Expose ports
 EXPOSE 80
 EXPOSE 6001
 
-# Start command
-CMD ["/var/www/html/scripts/start.sh"] 
+# Start command (shell formatı)
+CMD /bin/sh -c "/var/www/html/scripts/start.sh" 
