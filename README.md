@@ -63,6 +63,52 @@ or you can create your own account.
 
 You can test this app on https://message.wailantirajoh.tech
 
+## Render.com Deploy Talimatları
+
+Bu proje artık Render.com'da kolayca deploy edilebilir.
+
+### Ön Koşullar
+
+- Bir Render.com hesabı
+- Git deposuna erişim
+- Render.com üzerinde bir PostgreSQL veritabanı
+
+### PostgreSQL Veritabanı Bilgileri
+
+Bu projede Render.com tarafından sağlanan PostgreSQL veritabanı kullanılmaktadır. Veritabanı bağlantı bilgileri aşağıdaki gibidir:
+
+```
+Hostname: dpg-cvkkl6l6ubrc73fq9b6g-a
+Port: 5432
+Database: chat_ake6
+Username: chat_ake6_user
+Internal Database URL: postgresql://chat_ake6_user:5mijBS3BEa5bXxFKj0DgF0cUsQOBLkGP@dpg-cvkkl6l6ubrc73fq9b6g-a/chat_ake6
+External Database URL: postgresql://chat_ake6_user:5mijBS3BEa5bXxFKj0DgF0cUsQOBLkGP@dpg-cvkkl6l6ubrc73fq9b6g-a.frankfurt-postgres.render.com/chat_ake6
+```
+
+(Not: Şifre bilgisi güvenlik nedeniyle gizlenmiştir. Gerçek şifreyi kendi Render.com dashboard'unuzdan alabilirsiniz.)
+
+### Deploy Adımları
+
+1. Render.com hesabınıza giriş yapın
+2. Dashboard üzerinden "New +" butonuna tıklayın ve "Web Service" seçeneğini seçin
+3. Connect a repository bölümünde GitHub reponuzu bağlayın
+4. Ayarları şu şekilde yapılandırın:
+   - Name: whatsapp-web-clone (veya istediğiniz bir isim)
+   - Environment: Docker
+   - Branch: main (veya kullandığınız branch)
+   - Root Directory: (boş bırakın)
+5. "Create Web Service" butonuna tıklayın
+
+Render.com, `render.yaml` dosyasını otomatik olarak algılayacak ve gerekli yapılandırmaları uygulayacaktır. Deployment tamamlandığında, uygulama URL'inize giderek uygulamayı kullanmaya başlayabilirsiniz.
+
+### Notlar
+
+- PostgreSQL veritabanı kullanıldığından, veritabanı verileriniz Render.com'un PostgreSQL servisi tarafından yönetilmektedir.
+- WebSockets için pusher entegrasyonunun doğru yapılandırıldığından emin olun.
+- Eğer hata alırsanız, Render.com dashboard'daki logları kontrol edin.
+- Script dosyaları (build.sh ve start.sh) için gereken çalıştırma izinleri Dockerfile içinde otomatik olarak ayarlanacaktır.
+
 ## License
 
 The Laravel framework is open-sourced software licensed under the [MIT license](https://opensource.org/licenses/MIT).

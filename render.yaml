@@ -1,0 +1,62 @@
+services:
+  - type: web
+    name: whatsapp-web-clone
+    runtime: docker
+    buildCommand: "./scripts/build.sh"
+    startCommand: "./scripts/start.sh"
+    envVars:
+      - key: APP_ENV
+        value: production
+      - key: APP_DEBUG
+        value: "false"
+      - key: APP_KEY
+        generateValue: true
+      - key: APP_URL
+        fromService:
+          name: whatsapp-web-clone
+          type: web
+          property: host
+      - key: DB_CONNECTION
+        value: pgsql
+      - key: DB_HOST
+        value: dpg-cvkkl6l6ubrc73fq9b6g-a
+      - key: DB_PORT
+        value: "5432"
+      - key: DB_DATABASE
+        value: chat_ake6
+      - key: DB_USERNAME
+        value: chat_ake6_user
+      - key: DB_PASSWORD
+        value: 5mijBS3BEa5bXxFKj0DgF0cUsQOBLkGP
+      - key: DB_FOREIGN_KEYS
+        value: "true"
+      - key: CACHE_DRIVER
+        value: file
+      - key: SESSION_DRIVER
+        value: database
+      - key: QUEUE_CONNECTION
+        value: sync
+      - key: BROADCAST_DRIVER
+        value: pusher
+      - key: PUSHER_APP_ID
+        value: whatsapp
+      - key: PUSHER_APP_KEY
+        value: whatsapp-key
+      - key: PUSHER_APP_SECRET
+        value: whatsapp-secret
+      - key: PUSHER_PORT
+        value: "6001"
+      - key: PUSHER_SCHEME
+        value: https
+      - key: VITE_PUSHER_APP_KEY
+        value: "${PUSHER_APP_KEY}"
+      - key: VITE_PUSHER_HOST
+        value: "${PUSHER_HOST}"
+      - key: VITE_PUSHER_PORT
+        value: "${PUSHER_PORT}"
+      - key: VITE_PUSHER_SCHEME
+        value: "${PUSHER_SCHEME}"
+      - key: VITE_PUSHER_APP_CLUSTER
+        value: "${PUSHER_APP_CLUSTER}"
+      - key: LARAVEL_WEBSOCKETS_PORT
+        value: "6001" 

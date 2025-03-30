@@ -1,52 +1,42 @@
-FROM richarvey/nginx-php-fpm:latest
+FROM php:8.2-fpm-alpine
 
-# Çalışma dizinini ayarla
 WORKDIR /var/www/html
 
-# Gerekli dizinleri oluştur
-RUN mkdir -p /var/www/html/public \
-    && mkdir -p /var/log/supervisor \
-    && mkdir -p /run/nginx
-
-# PHP eklentilerini ve gerekli paketleri yükle
+# Gerekli PHP eklentilerini ve bağımlılıkları kur
 RUN apk add --no-cache \
-    php81-pdo \
-    php81-pdo_mysql \
-    php81-pdo_sqlite \
-    php81-mbstring \
-    php81-xml \
-    php81-openssl \
-    php81-json \
-    php81-tokenizer \
-    php81-dom \
-    php81-xmlwriter \
-    php81-fileinfo \
-    php81-session \
-    php81-curl \
-    php81-zip \
-    php81-soap \
+    nginx \
+    supervisor \
+    sqlite \
+    libpng-dev \
+    libzip-dev \
+    zip \
+    unzip \
+    git \
+    curl \
     nodejs \
     npm \
-    sqlite \
-    supervisor
+    oniguruma-dev \
+    postgresql-dev
 
-# Proje dosyalarını kopyala
-COPY . /var/www/html
+# PHP eklentilerini kur
+RUN docker-php-ext-install pdo pdo_mysql pdo_pgsql pdo_sqlite zip exif pcntl bcmath gd
 
-# nginx yapılandırması
-COPY ./nginx/default.conf /etc/nginx/sites-available/default.conf
-RUN ln -sf /etc/nginx/sites-available/default.conf /etc/nginx/sites-enabled/default.conf
+# Composer kur
+COPY --from=composer:latest /usr/bin/composer /usr/bin/composer
 
-# Dağıtım betiğini kopyala ve çalıştırma izni ver
+# Uygulama kodlarını kopyala
+COPY . .
+
+# Nginx konfigürasyonu
+COPY ./nginx/default.conf /etc/nginx/http.d/default.conf
+
+# Gerekli izinleri ayarla
+RUN chmod +x /var/www/html/scripts/build.sh
 RUN chmod +x /var/www/html/scripts/start.sh
 
-# İzinleri ayarla
-RUN chown -R nginx:nginx /var/www/html \
-    && chmod -R 755 /var/www/html/storage \
-    && chmod -R 755 /var/www/html/bootstrap/cache
+# Expose ports
+EXPOSE 80
+EXPOSE 6001
 
-# Publish portları
-EXPOSE 80 6001
-
-# Başlatma
+# Start command
 CMD ["/var/www/html/scripts/start.sh"] 
