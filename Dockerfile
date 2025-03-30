@@ -7,6 +7,9 @@ RUN apk add --no-cache \
     nginx \
     supervisor \
     libpng-dev \
+    libjpeg-turbo-dev \
+    freetype-dev \
+    libwebp-dev \
     libzip-dev \
     zip \
     unzip \
@@ -17,8 +20,16 @@ RUN apk add --no-cache \
     oniguruma-dev \
     postgresql-dev
 
-# PHP eklentilerini kur
-RUN docker-php-ext-install pdo pdo_pgsql zip exif pcntl bcmath gd
+# GD konfigürasyonu ve PHP eklentilerinin kurulumu
+RUN docker-php-ext-configure gd --with-freetype --with-jpeg --with-webp \
+    && docker-php-ext-install -j$(nproc) \
+        pdo \
+        pdo_pgsql \
+        zip \
+        exif \
+        pcntl \
+        bcmath \
+        gd
 
 # Composer kur
 COPY --from=composer:latest /usr/bin/composer /usr/bin/composer
