@@ -74,4 +74,4 @@ stderr_logfile=/var/www/html/storage/logs/websockets.log
 EOF
 
 # Supervisor'ı başlat
-/usr/bin/supervisord -c /etc/supervisor/conf.d/supervisord.conf
+/usr/bin/supervisord -c /etc/supervisor/conf.d/supervisord.conf 

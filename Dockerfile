@@ -34,4 +34,4 @@ COPY ./scripts/start.sh /var/www/html/scripts/start.sh
 RUN chmod +x /var/www/html/scripts/start.sh
 
 # Başlatma
-CMD ["/var/www/html/scripts/start.sh"]
+CMD ["/var/www/html/scripts/start.sh"] 
