@@ -6,7 +6,6 @@ WORKDIR /var/www/html
 RUN apk add --no-cache \
     nginx \
     supervisor \
-    sqlite \
     libpng-dev \
     libzip-dev \
     zip \
@@ -19,7 +18,7 @@ RUN apk add --no-cache \
     postgresql-dev
 
 # PHP eklentilerini kur
-RUN docker-php-ext-install pdo pdo_mysql pdo_pgsql pdo_sqlite zip exif pcntl bcmath gd
+RUN docker-php-ext-install pdo pdo_pgsql zip exif pcntl bcmath gd
 
 # Composer kur
 COPY --from=composer:latest /usr/bin/composer /usr/bin/composer
