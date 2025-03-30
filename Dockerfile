@@ -1,15 +1,18 @@
 FROM richarvey/nginx-php-fpm:latest
 
-COPY . /var/www/html
+# Çalışma dizinini ayarla
 WORKDIR /var/www/html
 
-# İzinleri ayarla
-RUN chown -R nginx:nginx /var/www/html
+# Gerekli dizinleri oluştur
+RUN mkdir -p /var/www/html/public \
+    && mkdir -p /var/log/supervisor \
+    && mkdir -p /run/nginx
 
 # PHP eklentilerini ve gerekli paketleri yükle
 RUN apk add --no-cache \
     php81-pdo \
     php81-pdo_mysql \
+    php81-pdo_sqlite \
     php81-mbstring \
     php81-xml \
     php81-openssl \
@@ -24,14 +27,26 @@ RUN apk add --no-cache \
     php81-soap \
     nodejs \
     npm \
+    sqlite \
     supervisor
+
+# Proje dosyalarını kopyala
+COPY . /var/www/html
 
 # nginx yapılandırması
 COPY ./nginx/default.conf /etc/nginx/sites-available/default.conf
+RUN ln -sf /etc/nginx/sites-available/default.conf /etc/nginx/sites-enabled/default.conf
 
 # Dağıtım betiğini kopyala ve çalıştırma izni ver
-COPY ./scripts/start.sh /var/www/html/scripts/start.sh
 RUN chmod +x /var/www/html/scripts/start.sh
+
+# İzinleri ayarla
+RUN chown -R nginx:nginx /var/www/html \
+    && chmod -R 755 /var/www/html/storage \
+    && chmod -R 755 /var/www/html/bootstrap/cache
+
+# Publish portları
+EXPOSE 80 6001
 
 # Başlatma
 CMD ["/var/www/html/scripts/start.sh"] 
