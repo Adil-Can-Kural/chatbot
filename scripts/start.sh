@@ -223,9 +223,10 @@ chmod -R 777 /run/nginx
 echo "Checking Nginx configuration..."
 nginx -t
 
-# Supervisor için yapılandırma oluştur
-echo "Configuring Supervisor..."
-mkdir -p /etc/supervisor/conf.d/
+# Nginx konfigürasyonunu PORT değişkeni ile güncelle
+echo "Updating Nginx configuration for dynamic PORT..."
+export PORT=${PORT:-80}
+echo "Using PORT: $PORT"
 
 # PHP-FPM yolunu bul
 echo "Finding PHP-FPM path..."
@@ -242,6 +243,58 @@ if [ -z "$PHP_FPM_PATH" ]; then
     PHP_FPM_PATH="php-fpm"
     echo "Using default PHP-FPM command: $PHP_FPM_PATH"
 fi
+
+# PHP-FPM için yapılandırma oluştur
+echo "Configuring PHP-FPM..."
+mkdir -p /usr/local/etc/php-fpm.d/
+
+# www-data kullanıcısı yoksa oluştur
+echo "Checking for www-data user..."
+if ! id -u www-data > /dev/null 2>&1; then
+    echo "Creating www-data user and group..."
+    addgroup -g 82 -S www-data && adduser -u 82 -D -S -G www-data www-data
+fi
+
+cat > /usr/local/etc/php-fpm.d/zz-docker.conf << 'EOF'
+[global]
+daemonize = no
+
+[www]
+user = www-data
+group = www-data
+listen = 127.0.0.1:9000
+pm = dynamic
+pm.max_children = 5
+pm.start_servers = 2
+pm.min_spare_servers = 1
+pm.max_spare_servers = 3
+pm.max_requests = 500
+clear_env = no
+catch_workers_output = yes
+decorate_workers_output = no
+EOF
+
+# Eski yapılandırma dosyasını da oluştur, gerekebilir
+mkdir -p /usr/local/etc/php-fpm.conf.d/
+cp /usr/local/etc/php-fpm.d/zz-docker.conf /usr/local/etc/php-fpm.conf.d/www.conf
+
+# Nginx konfigürasyonunda PORT değişkenini değiştir
+sed -i "s|\${PORT:-80}|$PORT|g" /etc/nginx/http.d/default.conf
+
+# Nginx başlatmadan önce dizinleri kontrol et
+mkdir -p /var/www/html/public
+chmod -R 755 /var/www/html/public
+chmod -R 755 /var/www/html/storage
+
+# Render.com için port bildirimini yazdır
+echo "Server listening on port $PORT"
+echo "Starting Laravel server in background..."
+php artisan serve --host=0.0.0.0 --port=$PORT --quiet &
+LARAVEL_PID=$!
+
+# Supervisor için yapılandırma oluştur
+echo "Configuring Supervisor..."
+mkdir -p /etc/supervisor/conf.d/
 
 cat > /etc/supervisor/conf.d/supervisord.conf << EOF
 [supervisord]
@@ -278,45 +331,6 @@ priority=20
 stdout_logfile=/var/log/supervisor/websockets.log
 stderr_logfile=/var/log/supervisor/websockets_error.log
 EOF
-
-# PHP-FPM için yapılandırma oluştur
-echo "Configuring PHP-FPM..."
-mkdir -p /usr/local/etc/php-fpm.d/
-
-# www-data kullanıcısı yoksa oluştur
-echo "Checking for www-data user..."
-if ! id -u www-data > /dev/null 2>&1; then
-    echo "Creating www-data user and group..."
-    addgroup -g 82 -S www-data && adduser -u 82 -D -S -G www-data www-data
-fi
-
-cat > /usr/local/etc/php-fpm.d/zz-docker.conf << 'EOF'
-[global]
-daemonize = no
-
-[www]
-user = www-data
-group = www-data
-listen = 127.0.0.1:9000
-pm = dynamic
-pm.max_children = 5
-pm.start_servers = 2
-pm.min_spare_servers = 1
-pm.max_spare_servers = 3
-pm.max_requests = 500
-clear_env = no
-catch_workers_output = yes
-decorate_workers_output = no
-EOF
-
-# Eski yapılandırma dosyasını da oluştur, gerekebilir
-mkdir -p /usr/local/etc/php-fpm.conf.d/
-cp /usr/local/etc/php-fpm.d/zz-docker.conf /usr/local/etc/php-fpm.conf.d/www.conf
-
-# Nginx başlatmadan önce dizinleri kontrol et
-mkdir -p /var/www/html/public
-chmod -R 755 /var/www/html/public
-chmod -R 755 /var/www/html/storage
 
 echo "Starting Supervisor..."
 exec /usr/bin/supervisord -c /etc/supervisor/conf.d/supervisord.conf 

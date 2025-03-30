@@ -4,6 +4,8 @@ services:
     runtime: docker
     buildCommand: "./scripts/build.sh"
     startCommand: "./scripts/start.sh"
+    healthCheckPath: /health
+    plan: free
     envVars:
       - key: APP_ENV
         value: production
@@ -44,8 +46,13 @@ services:
         value: whatsapp-key
       - key: PUSHER_APP_SECRET
         value: whatsapp-secret
+      - key: PUSHER_HOST
+        fromService:
+          name: whatsapp-web-clone
+          type: web
+          property: host
       - key: PUSHER_PORT
-        value: "6001"
+        value: "443"
       - key: PUSHER_SCHEME
         value: https
       - key: VITE_PUSHER_APP_KEY
