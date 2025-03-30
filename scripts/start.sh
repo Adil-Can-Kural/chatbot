@@ -38,18 +38,22 @@ echo "Setting directory permissions..."
 chmod -R 775 storage bootstrap/cache
 chown -R nginx:nginx storage bootstrap/cache
 
-# SQLite için veritabanı dosyası oluştur (eğer yoksa)
-if [ ! -f database/database.sqlite ]; then
-    echo "Creating SQLite database..."
-    mkdir -p database
-    touch database/database.sqlite
-    chmod 775 database/database.sqlite
-    chown nginx:nginx database/database.sqlite
+# SQLite için veritabanı dosyası temizle ve yeniden oluştur
+echo "Setting up SQLite database..."
+mkdir -p database
+if [ -f database/database.sqlite ]; then
+    echo "Removing existing SQLite database..."
+    rm database/database.sqlite
 fi
+
+echo "Creating new SQLite database..."
+touch database/database.sqlite
+chmod 775 database/database.sqlite
+chown nginx:nginx database/database.sqlite
 
 # Migrasyonları çalıştır
 echo "Running database migrations..."
-php artisan migrate --force
+php artisan migrate:fresh --force
 
 # NPM paketlerini yükle ve derle (eğer gerekliyse)
 if [ -f package.json ]; then
