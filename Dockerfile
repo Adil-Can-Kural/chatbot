@@ -18,7 +18,8 @@ RUN apk add --no-cache \
     nodejs \
     npm \
     oniguruma-dev \
-    postgresql-dev
+    postgresql-dev \
+    dos2unix
 
 # GD konfigürasyonu ve PHP eklentilerinin kurulumu
 RUN docker-php-ext-configure gd --with-freetype --with-jpeg --with-webp \
@@ -34,15 +35,19 @@ RUN docker-php-ext-configure gd --with-freetype --with-jpeg --with-webp \
 # Composer kur
 COPY --from=composer:latest /usr/bin/composer /usr/bin/composer
 
-# Uygulama kodlarını kopyala
-COPY . .
+# Scripts dizinini önce kopyala
+COPY ./scripts /var/www/html/scripts/
+
+# Gerekli izinleri ayarla ve satır sonlarını düzelt
+RUN chmod +x /var/www/html/scripts/build.sh && \
+    chmod +x /var/www/html/scripts/start.sh && \
+    dos2unix /var/www/html/scripts/*.sh
+
+# Kalan uygulama kodlarını kopyala
+COPY . /var/www/html/
 
 # Nginx konfigürasyonu
 COPY ./nginx/default.conf /etc/nginx/http.d/default.conf
-
-# Gerekli izinleri ayarla
-RUN chmod +x /var/www/html/scripts/build.sh
-RUN chmod +x /var/www/html/scripts/start.sh
 
 # Expose ports
 EXPOSE 80
