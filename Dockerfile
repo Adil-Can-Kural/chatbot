@@ -34,6 +34,11 @@ RUN docker-php-ext-configure gd --with-freetype --with-jpeg --with-webp \
         bcmath \
         gd
 
+# PHP-FPM için sembolik bağlantılar oluştur (path sorunlarını çözmek için)
+RUN ln -sf /usr/local/sbin/php-fpm /usr/sbin/php-fpm && \
+    ln -sf /usr/local/sbin/php-fpm /usr/sbin/php-fpm8 && \
+    ln -sf /usr/local/bin/php /usr/bin/php
+
 # Composer kur
 COPY --from=composer:latest /usr/bin/composer /usr/bin/composer
 
