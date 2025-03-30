@@ -19,7 +19,9 @@ RUN apk update && apk add --no-cache \
     npm \
     oniguruma-dev \
     postgresql-dev \
-    bash
+    bash \
+    bind-tools \
+    netcat-openbsd
 
 # GD konfigürasyonu ve PHP eklentilerinin kurulumu
 RUN docker-php-ext-configure gd --with-freetype --with-jpeg --with-webp \
@@ -68,6 +70,17 @@ mkdir -p /var/log/supervisor\n\
 mkdir -p /var/log/nginx\n\
 # Tüm uygulama dizinini listele (debug için)\n\
 ls -la /var/www/html/\n\
+# Ağ bağlantılarını test et\n\
+echo "Testing network connectivity..."\n\
+echo "Hostname: $DB_HOST"\n\
+echo "Trying to resolve host..."\n\
+nslookup $DB_HOST || echo "DNS resolution failed!"\n\
+# Veritabanı bağlantısını test et\n\
+echo "Testing database connection..."\n\
+if [ -n "$DB_HOST" ] && [ -n "$DB_PORT" ] && [ -n "$DB_USERNAME" ] && [ -n "$DB_PASSWORD" ]; then\n\
+  echo "Testing connection to $DB_HOST:$DB_PORT..."\n\
+  nc -zv $DB_HOST $DB_PORT || echo "Connection failed!"\n\
+fi\n\
 # Composer bağımlılıklarını kur\n\
 echo "Installing Composer dependencies..."\n\
 composer install --no-dev --optimize-autoloader\n\
@@ -75,6 +88,14 @@ composer install --no-dev --optimize-autoloader\n\
 if [ ! -f .env ]; then\n\
     echo "Creating .env file from example..."\n\
     cp .env.example .env\n\
+    # .env dosyasını manuel olarak yapılandır\n\
+    echo "Configuring .env file manually..."\n\
+    sed -i "s/DB_CONNECTION=.*/DB_CONNECTION=$DB_CONNECTION/" .env\n\
+    sed -i "s/DB_HOST=.*/DB_HOST=$DB_HOST/" .env\n\
+    sed -i "s/DB_PORT=.*/DB_PORT=$DB_PORT/" .env\n\
+    sed -i "s/DB_DATABASE=.*/DB_DATABASE=$DB_DATABASE/" .env\n\
+    sed -i "s/DB_USERNAME=.*/DB_USERNAME=$DB_USERNAME/" .env\n\
+    sed -i "s/DB_PASSWORD=.*/DB_PASSWORD=$DB_PASSWORD/" .env\n\
 fi\n\
 # Uygulama anahtarı oluştur\n\
 echo "Generating application key..."\n\

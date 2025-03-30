@@ -19,7 +19,7 @@ services:
       - key: DB_CONNECTION
         value: pgsql
       - key: DB_HOST
-        value: dpg-cvkkl6l6ubrc73fq9b6g-a
+        value: dpg-cvkkl6l6ubrc73fq9b6g-a.frankfurt-postgres.render.com
       - key: DB_PORT
         value: "5432"
       - key: DB_DATABASE
