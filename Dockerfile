@@ -60,6 +60,41 @@ chmod -R 775 storage bootstrap/cache\n\
 echo "Build completed successfully!"\n\
 ' > /var/www/html/scripts/build.sh
 
+# PHP database config dosyasını oluştur
+RUN echo '<?php\n\
+// Bu dosya veritabanı bağlantısını düzeltmek için\n\
+// config/database.php dosyasını override eder\n\
+return [\n\
+    "connections" => [\n\
+        "pgsql" => [\n\
+            "driver" => "pgsql",\n\
+            "host" => "dpg-cvkkl6l6ubrc73fq9b6g-a",\n\
+            "port" => 5432,\n\
+            "database" => "chat_ake6",\n\
+            "username" => "chat_ake6_user",\n\
+            "password" => "5mijBS3BEa5bXxFKj0DgF0cUsQOBLkGP",\n\
+            "charset" => "utf8",\n\
+            "prefix" => "",\n\
+            "prefix_indexes" => true,\n\
+            "schema" => "public",\n\
+            "sslmode" => "prefer",\n\
+        ],\n\
+    ],\n\
+];\n\
+' > /var/www/html/database_config.php
+
+# PHP database config override bootstrap dosyasını oluştur
+RUN echo '<?php\n\
+// database_override.php dosyası\n\
+// Laravel bootstrap sırasında veritabanı yapılandırmasını geçersiz kılar.\n\
+if (file_exists(__DIR__ . "/../config/database.custom.php")) {\n\
+    $customConfig = require __DIR__ . "/../config/database.custom.php";\n\
+    if (isset($customConfig["connections"]["pgsql"])) {\n\
+        config(["database.connections.pgsql" => $customConfig["connections"]["pgsql"]]);\n\
+    }\n\
+}\n\
+' > /var/www/html/db_override.php
+
 RUN echo '#!/bin/bash\n\
 # Hata ayıklama için\n\
 set -e\n\
@@ -68,19 +103,23 @@ echo "Starting Laravel application setup..."\n\
 mkdir -p /run/nginx\n\
 mkdir -p /var/log/supervisor\n\
 mkdir -p /var/log/nginx\n\
+# Çevre değişkenlerini görüntüle\n\
+echo "Environment variables:"\n\
+echo "DB_CONNECTION: $DB_CONNECTION"\n\
+echo "DB_HOST: $DB_HOST"\n\
+echo "DB_PORT: $DB_PORT"\n\
+echo "DB_DATABASE: $DB_DATABASE"\n\
+echo "DB_USERNAME: $DB_USERNAME"\n\
 # Tüm uygulama dizinini listele (debug için)\n\
 ls -la /var/www/html/\n\
 # Ağ bağlantılarını test et\n\
 echo "Testing network connectivity..."\n\
-echo "Hostname: $DB_HOST"\n\
 echo "Trying to resolve host..."\n\
-nslookup $DB_HOST || echo "DNS resolution failed!"\n\
+nslookup dpg-cvkkl6l6ubrc73fq9b6g-a || echo "DNS resolution failed!"\n\
 # Veritabanı bağlantısını test et\n\
 echo "Testing database connection..."\n\
-if [ -n "$DB_HOST" ] && [ -n "$DB_PORT" ] && [ -n "$DB_USERNAME" ] && [ -n "$DB_PASSWORD" ]; then\n\
-  echo "Testing connection to $DB_HOST:$DB_PORT..."\n\
-  nc -zv $DB_HOST $DB_PORT || echo "Connection failed!"\n\
-fi\n\
+echo "Testing connection to dpg-cvkkl6l6ubrc73fq9b6g-a:5432..."\n\
+nc -zv dpg-cvkkl6l6ubrc73fq9b6g-a 5432 || echo "Connection failed!"\n\
 # Composer bağımlılıklarını kur\n\
 echo "Installing Composer dependencies..."\n\
 composer install --no-dev --optimize-autoloader\n\
@@ -88,15 +127,26 @@ composer install --no-dev --optimize-autoloader\n\
 if [ ! -f .env ]; then\n\
     echo "Creating .env file from example..."\n\
     cp .env.example .env\n\
-    # .env dosyasını manuel olarak yapılandır\n\
-    echo "Configuring .env file manually..."\n\
-    sed -i "s/DB_CONNECTION=.*/DB_CONNECTION=$DB_CONNECTION/" .env\n\
-    sed -i "s/DB_HOST=.*/DB_HOST=$DB_HOST/" .env\n\
-    sed -i "s/DB_PORT=.*/DB_PORT=$DB_PORT/" .env\n\
-    sed -i "s/DB_DATABASE=.*/DB_DATABASE=$DB_DATABASE/" .env\n\
-    sed -i "s/DB_USERNAME=.*/DB_USERNAME=$DB_USERNAME/" .env\n\
-    sed -i "s/DB_PASSWORD=.*/DB_PASSWORD=$DB_PASSWORD/" .env\n\
 fi\n\
+# .env dosyasını manuel olarak yapılandır\n\
+echo "Configuring .env file manually..."\n\
+sed -i "s|DB_CONNECTION=.*|DB_CONNECTION=pgsql|" .env\n\
+sed -i "s|DB_HOST=.*|DB_HOST=dpg-cvkkl6l6ubrc73fq9b6g-a|" .env\n\
+sed -i "s|DB_PORT=.*|DB_PORT=5432|" .env\n\
+sed -i "s|DB_DATABASE=.*|DB_DATABASE=chat_ake6|" .env\n\
+sed -i "s|DB_USERNAME=.*|DB_USERNAME=chat_ake6_user|" .env\n\
+sed -i "s|DB_PASSWORD=.*|DB_PASSWORD=5mijBS3BEa5bXxFKj0DgF0cUsQOBLkGP|" .env\n\
+# Özel veritabanı yapılandırma dosyasını kopyala\n\
+echo "Copying custom database configuration..."\n\
+cp /var/www/html/database_config.php /var/www/html/config/database.custom.php\n\
+cp /var/www/html/db_override.php /var/www/html/bootstrap/db_override.php\n\
+# Laravel bootstrap dosyasını düzenle\n\
+if [ -f /var/www/html/bootstrap/app.php ]; then\n\
+    echo "Modifying bootstrap/app.php to load database override..."\n\
+    sed -i "/^return \$app;/i // Load database override\\nrequire_once __DIR__ . \'/db_override.php\';" /var/www/html/bootstrap/app.php\n\
+fi\n\
+# Config dosyalarını temizle\n\
+php artisan config:clear\n\
 # Uygulama anahtarı oluştur\n\
 echo "Generating application key..."\n\
 php artisan key:generate --force\n\
