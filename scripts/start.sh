@@ -32,7 +32,15 @@ nc -zv dpg-cvkkl6l6ubrc73fq9b6g-a 5432 || echo "Connection failed!"
 
 # Composer bağımlılıklarını kur
 echo "Installing Composer dependencies..."
-composer install --no-dev --optimize-autoloader
+COMPOSER_MEMORY_LIMIT=-1 composer install --no-dev --optimize-autoloader --no-scripts --no-interaction --prefer-dist
+
+# Composer cache'i temizle
+echo "Clearing Composer cache..."
+composer clear-cache
+
+# Composer autoload dosyalarını optimize et
+echo "Optimizing Composer autoloader..."
+composer dump-autoload --optimize --no-dev
 
 # .env dosyası yoksa, örnek dosyadan kopyala
 if [ ! -f .env ]; then
