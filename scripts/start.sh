@@ -211,16 +211,10 @@ try {
 // Tüm migrationları çalıştır, hataları yok say
 try {
     echo "Running migrations...\n";
-    // Önce migration durumunu kontrol et
-    $status = Artisan::call('migrate:status', ['--force' => true]);
-    echo "Current migration status:\n";
-    echo Artisan::output();
     
-    // Migrationları çalıştır
+    // Doğrudan migrationları çalıştır (--force seçeneği olmadan)
     $result = Artisan::call('migrate', [
-        '--force' => true,
-        '--no-interaction' => true,
-        '--verbose' => true
+        '--no-interaction' => true
     ]);
     
     echo "Migration output:\n";
