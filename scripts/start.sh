@@ -18,6 +18,39 @@ echo "DB_DATABASE: $DB_DATABASE"
 echo "DB_USERNAME: $DB_USERNAME"
 echo "PORT: $PORT" # Render.com'un atadığı port
 
+# Port değişkenini kontrol et ve ayarla
+if [ -z "$PORT" ]; then
+    echo "PORT değişkeni tanımlanmamış, varsayılan 80 kullanılıyor"
+    export PORT=80
+else
+    echo "PORT değişkeni algılandı: $PORT"
+    # Nginx konfigürasyonunu dinamik olarak güncelle
+    sed -i "s|listen 80|listen $PORT|g" /etc/nginx/http.d/default.conf
+fi
+
+# Çalışma dizinini kontrol et
+echo "Mevcut çalışma dizini: $(pwd)"
+ls -la
+
+# vendor dizini var mı kontrol et
+if [ ! -d "vendor" ]; then
+    echo "vendor dizini bulunamadı, composer bağımlılıklarını yüklüyorum..."
+    # Composer cache dizinlerini oluştur
+    mkdir -p ~/.composer/cache/vcs
+    mkdir -p ~/.composer/cache/repo
+    chmod -R 777 ~/.composer
+
+    # Composer kurulumunu gerçekleştir
+    COMPOSER_MEMORY_LIMIT=-1 composer install --no-dev --optimize-autoloader --no-interaction --prefer-dist
+    
+    if [ $? -ne 0 ]; then
+        echo "Composer kurulumunda hata oluştu!"
+        exit 1
+    fi
+else
+    echo "vendor dizini zaten var, bağımlılıklar yüklü."
+fi
+
 # Tüm uygulama dizinini listele (debug için)
 ls -la /var/www/html/
 
@@ -30,22 +63,6 @@ nslookup dpg-cvkkl6l6ubrc73fq9b6g-a || echo "DNS resolution failed!"
 echo "Testing database connection..."
 echo "Testing connection to dpg-cvkkl6l6ubrc73fq9b6g-a:5432..."
 nc -zv dpg-cvkkl6l6ubrc73fq9b6g-a 5432 || echo "Connection failed!"
-
-# Composer bağımlılıklarını kur
-echo "Installing Composer dependencies..."
-
-# Composer cache dizinlerini oluştur
-echo "Creating Composer cache directories..."
-mkdir -p ~/.composer/cache/vcs
-mkdir -p ~/.composer/cache/repo
-chmod -R 777 ~/.composer
-
-# Composer kurulumunu gerçekleştir
-COMPOSER_MEMORY_LIMIT=-1 composer install --no-dev --optimize-autoloader --no-scripts --no-interaction --prefer-dist
-
-# Composer cache'i temizle
-echo "Clearing Composer cache..."
-composer clear-cache
 
 # Composer autoload dosyalarını optimize et
 echo "Optimizing Composer autoloader..."
@@ -251,25 +268,12 @@ fi
 
 # Render.com için Nginx yapılandırmasını kontrol et
 echo "Checking Nginx configuration..."
-if [ -z "$PORT" ]; then
-    echo "WARNING: PORT environment variable is not set. Using default 80."
-    export PORT=80
-fi
+echo "Nginx configuration will use port: $PORT"
 
 # Nginx yapılandırma dosyasını kontrol et ve hataları raporla
-echo "Verifying nginx configuration with PORT=$PORT"
+echo "Verifying nginx configuration after port adjustment"
 nginx -t
 
-# supervisor ile servisleri başlatacak şekilde ayarlandı, bu dosya artık CMD tarafından çağrılmayacak
-# Ancak build sürecinde kullanıldığı için ve Render.com build işlemini tamamlamak için bırakıyoruz
-echo "Setup completed successfully. Services will be managed by supervisord."
-
-# Supervisor yapılandırmasını kontrol et
-if [ -f "/etc/supervisor/conf.d/supervisord.conf" ]; then
-    echo "Supervisor configuration found at /etc/supervisor/conf.d/supervisord.conf"
-else
-    echo "WARNING: Supervisor configuration not found"
-fi
-
-# Bu betik artık hizmetleri başlatmayacak, sadece kurulumu yapacak
-# exec supervisord -c /etc/supervisor/conf.d/supervisord.conf 
+# supervisor ile servisleri başlatacak şekilde ayarlandı
+echo "Setup completed successfully. Starting supervisord..."
+exec /usr/bin/supervisord -c /etc/supervisor/conf.d/supervisord.conf 

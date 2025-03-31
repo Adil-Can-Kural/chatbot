@@ -45,17 +45,30 @@ COPY --from=composer:latest /usr/bin/composer /usr/bin/composer
 # Scripts dizinini oluştur
 RUN mkdir -p /var/www/html/scripts
 
-# Betik dosyalarını kopyala
-COPY scripts/build.sh /var/www/html/scripts/
-COPY scripts/start.sh /var/www/html/scripts/
+# Önce betik dosyalarını kopyala
+COPY scripts /var/www/html/scripts/
 
 # Gerekli izinleri ayarla
 RUN chmod +x /var/www/html/scripts/build.sh && \
-    chmod +x /var/www/html/scripts/start.sh && \
-    ls -la /var/www/html/scripts/
+    chmod +x /var/www/html/scripts/start.sh
+
+# composer.json ve composer.lock dosyalarını kopyala
+COPY composer.json composer.lock ./
+
+# Composer bağımlılıklarını yükle
+RUN composer install --no-dev --optimize-autoloader --no-scripts --no-interaction --prefer-dist
 
 # Kalan uygulama kodlarını kopyala
 COPY . /var/www/html/
+
+# Dizinlere gerekli izinleri ver
+RUN mkdir -p /var/www/html/storage/logs \
+    /var/www/html/storage/framework/sessions \
+    /var/www/html/storage/framework/views \
+    /var/www/html/storage/framework/cache \
+    && chmod -R 777 /var/www/html/storage \
+    && chmod -R 777 /var/www/html/bootstrap/cache \
+    && chown -R www-data:www-data /var/www/html
 
 # Nginx konfigürasyonu
 COPY ./nginx/default.conf /etc/nginx/http.d/default.conf
@@ -63,9 +76,15 @@ COPY ./nginx/default.conf /etc/nginx/http.d/default.conf
 # Supervisor konfigürasyonu
 COPY ./supervisord.conf /etc/supervisor/conf.d/supervisord.conf
 
-# Expose ports - PORT çevre değişkeni Render.com tarafından sağlanacak
-EXPOSE $PORT
+# Supervisor dizinlerini oluştur
+RUN mkdir -p /var/log/supervisor /var/log/nginx /run/nginx \
+    && chmod -R 777 /var/log/supervisor \
+    && chmod -R 777 /var/log/nginx \
+    && chmod -R 777 /run/nginx
+
+# Expose ports
+EXPOSE 80
 EXPOSE 6001
 
-# Render.com için start komutu güncellendi
-CMD ["/usr/bin/supervisord", "-c", "/etc/supervisor/conf.d/supervisord.conf"] 
+# Başlangıç komutu
+CMD ["/bin/bash", "/var/www/html/scripts/start.sh"] 

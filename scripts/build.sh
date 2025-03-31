@@ -5,6 +5,13 @@ set -e
 
 echo "Building Laravel application for Render.com deployment..."
 
+# Gerekli dizinleri oluştur
+mkdir -p storage/logs
+mkdir -p storage/framework/sessions
+mkdir -p storage/framework/views
+mkdir -p storage/framework/cache
+mkdir -p bootstrap/cache
+
 # Composer cache dizinlerini oluştur
 echo "Creating Composer cache directories..."
 mkdir -p ~/.composer/cache/vcs
@@ -30,9 +37,30 @@ if [ -f package.json ]; then
     npm run build
 fi
 
+# Gerekli dizinleri ve dosyaları kontrol et
+echo "Checking for required directories and files..."
+if [ ! -d "vendor" ]; then
+    echo "ERROR: vendor directory doesn't exist!"
+    exit 1
+fi
+
+if [ ! -f "vendor/autoload.php" ]; then
+    echo "ERROR: vendor/autoload.php doesn't exist!"
+    exit 1
+fi
+
 # Storage ve bootstrap/cache dizinleri için izinleri ayarla
 echo "Setting directory permissions..."
-chmod -R 775 storage bootstrap/cache
+chmod -R 777 storage
+chmod -R 777 bootstrap/cache
+
+# nginx ve supervisor dizinlerini oluştur
+mkdir -p /run/nginx
+mkdir -p /var/log/supervisor
+mkdir -p /var/log/nginx
+chmod -R 777 /run/nginx
+chmod -R 777 /var/log/supervisor
+chmod -R 777 /var/log/nginx
 
 # Laravel cache'i temizle
 echo "Clearing Laravel cache..."

@@ -3,7 +3,7 @@ services:
     name: whatsapp-web-clone
     runtime: docker
     buildCommand: "./scripts/build.sh"
-    startCommand: "/usr/bin/supervisord -c /etc/supervisor/conf.d/supervisord.conf"
+    startCommand: "./scripts/start.sh"
     healthCheckPath: /health
     plan: free
     envVars:
