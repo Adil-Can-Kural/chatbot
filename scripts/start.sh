@@ -16,6 +16,7 @@ echo "DB_HOST: $DB_HOST"
 echo "DB_PORT: $DB_PORT"
 echo "DB_DATABASE: $DB_DATABASE"
 echo "DB_USERNAME: $DB_USERNAME"
+echo "PORT: $PORT" # Render.com'un atadığı port
 
 # Tüm uygulama dizinini listele (debug için)
 ls -la /var/www/html/
@@ -248,123 +249,27 @@ if ! nc -z localhost 6001; then
     echo "WebSockets port is not available yet. Checking service status..."
 fi
 
-# Log dosyalarına erişim izni ver
-mkdir -p /var/log/supervisor /var/log/nginx /run/nginx
-chmod -R 777 /var/log/supervisor
-chmod -R 777 /var/log/nginx
-chmod -R 777 /run/nginx
-
+# Render.com için Nginx yapılandırmasını kontrol et
 echo "Checking Nginx configuration..."
+if [ -z "$PORT" ]; then
+    echo "WARNING: PORT environment variable is not set. Using default 80."
+    export PORT=80
+fi
+
+# Nginx yapılandırma dosyasını kontrol et ve hataları raporla
+echo "Verifying nginx configuration with PORT=$PORT"
 nginx -t
 
-# Nginx konfigürasyonunu PORT değişkeni ile güncelle
-echo "Updating Nginx configuration for dynamic PORT..."
-export PORT=${PORT:-80}
-echo "Using PORT: $PORT"
+# supervisor ile servisleri başlatacak şekilde ayarlandı, bu dosya artık CMD tarafından çağrılmayacak
+# Ancak build sürecinde kullanıldığı için ve Render.com build işlemini tamamlamak için bırakıyoruz
+echo "Setup completed successfully. Services will be managed by supervisord."
 
-# PHP-FPM yolunu bul
-echo "Finding PHP-FPM path..."
-PHP_FPM_PATH=""
-for path in "/usr/local/sbin/php-fpm" "/usr/sbin/php-fpm" "/usr/bin/php-fpm" "/usr/local/bin/php-fpm" "$(which php-fpm 2>/dev/null)"; do
-    if [ -x "$path" ]; then
-        PHP_FPM_PATH="$path"
-        echo "Found PHP-FPM at: $PHP_FPM_PATH"
-        break
-    fi
-done
-
-if [ -z "$PHP_FPM_PATH" ]; then
-    PHP_FPM_PATH="php-fpm"
-    echo "Using default PHP-FPM command: $PHP_FPM_PATH"
+# Supervisor yapılandırmasını kontrol et
+if [ -f "/etc/supervisor/conf.d/supervisord.conf" ]; then
+    echo "Supervisor configuration found at /etc/supervisor/conf.d/supervisord.conf"
+else
+    echo "WARNING: Supervisor configuration not found"
 fi
 
-# PHP-FPM için yapılandırma oluştur
-echo "Configuring PHP-FPM..."
-mkdir -p /usr/local/etc/php-fpm.d/
-
-# www-data kullanıcısı yoksa oluştur
-echo "Checking for www-data user..."
-if ! id -u www-data > /dev/null 2>&1; then
-    echo "Creating www-data user and group..."
-    addgroup -g 82 -S www-data && adduser -u 82 -D -S -G www-data www-data
-fi
-
-cat > /usr/local/etc/php-fpm.d/zz-docker.conf << 'EOF'
-[global]
-daemonize = no
-
-[www]
-user = www-data
-group = www-data
-listen = 127.0.0.1:9000
-pm = dynamic
-pm.max_children = 5
-pm.start_servers = 2
-pm.min_spare_servers = 1
-pm.max_spare_servers = 3
-pm.max_requests = 500
-clear_env = no
-catch_workers_output = yes
-decorate_workers_output = no
-EOF
-
-# Eski yapılandırma dosyasını da oluştur, gerekebilir
-mkdir -p /usr/local/etc/php-fpm.conf.d/
-cp /usr/local/etc/php-fpm.d/zz-docker.conf /usr/local/etc/php-fpm.conf.d/www.conf
-
-# Nginx konfigürasyonunda PORT değişkenini değiştir
-sed -i "s|\${PORT:-80}|$PORT|g" /etc/nginx/http.d/default.conf
-
-# Nginx başlatmadan önce dizinleri kontrol et
-mkdir -p /var/www/html/public
-chmod -R 755 /var/www/html/public
-chmod -R 755 /var/www/html/storage
-
-# Render.com için port bildirimini yazdır
-echo "Server listening on port $PORT"
-echo "Starting Laravel server in background..."
-php artisan serve --host=0.0.0.0 --port=$PORT --quiet &
-LARAVEL_PID=$!
-
-# Supervisor için yapılandırma oluştur
-echo "Configuring Supervisor..."
-mkdir -p /etc/supervisor/conf.d/
-
-cat > /etc/supervisor/conf.d/supervisord.conf << EOF
-[supervisord]
-nodaemon=true
-user=root
-logfile=/var/log/supervisor/supervisord.log
-pidfile=/var/run/supervisord.pid
-
-[program:nginx]
-command=/usr/sbin/nginx -g "daemon off;"
-autostart=true
-autorestart=true
-priority=10
-stdout_logfile=/dev/stdout
-stdout_logfile_maxbytes=0
-stderr_logfile=/dev/stderr
-stderr_logfile_maxbytes=0
-
-[program:php-fpm]
-command=$PHP_FPM_PATH
-autostart=true
-autorestart=true
-priority=5
-stdout_logfile=/dev/stdout
-stdout_logfile_maxbytes=0
-stderr_logfile=/dev/stderr
-stderr_logfile_maxbytes=0
-
-[program:websockets]
-command=php /var/www/html/artisan websockets:serve --host=0.0.0.0 --port=6001
-autostart=true
-autorestart=true
-priority=20
-stdout_logfile=/var/log/supervisor/websockets.log
-stderr_logfile=/var/log/supervisor/websockets_error.log
-EOF
-
-echo "Starting Supervisor..."
-exec /usr/bin/supervisord -c /etc/supervisor/conf.d/supervisord.conf 
+# Bu betik artık hizmetleri başlatmayacak, sadece kurulumu yapacak
+# exec supervisord -c /etc/supervisor/conf.d/supervisord.conf 

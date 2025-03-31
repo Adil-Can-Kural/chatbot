@@ -60,9 +60,12 @@ COPY . /var/www/html/
 # Nginx konfigürasyonu
 COPY ./nginx/default.conf /etc/nginx/http.d/default.conf
 
-# Expose ports
-EXPOSE 80
+# Supervisor konfigürasyonu
+COPY ./supervisord.conf /etc/supervisor/conf.d/supervisord.conf
+
+# Expose ports - PORT çevre değişkeni Render.com tarafından sağlanacak
+EXPOSE $PORT
 EXPOSE 6001
 
-# Start command
-CMD ["/bin/bash", "/var/www/html/scripts/start.sh"] 
+# Render.com için start komutu güncellendi
+CMD ["/usr/bin/supervisord", "-c", "/etc/supervisor/conf.d/supervisord.conf"] 
