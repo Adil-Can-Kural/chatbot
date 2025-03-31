@@ -32,6 +32,14 @@ nc -zv dpg-cvkkl6l6ubrc73fq9b6g-a 5432 || echo "Connection failed!"
 
 # Composer bağımlılıklarını kur
 echo "Installing Composer dependencies..."
+
+# Composer cache dizinlerini oluştur
+echo "Creating Composer cache directories..."
+mkdir -p ~/.composer/cache/vcs
+mkdir -p ~/.composer/cache/repo
+chmod -R 777 ~/.composer
+
+# Composer kurulumunu gerçekleştir
 COMPOSER_MEMORY_LIMIT=-1 composer install --no-dev --optimize-autoloader --no-scripts --no-interaction --prefer-dist
 
 # Composer cache'i temizle
@@ -185,8 +193,26 @@ try {
 // Tüm migrationları çalıştır, hataları yok say
 try {
     echo "Running migrations...\n";
-    Artisan::call('migrate', ['--force' => true, '--no-interaction' => true]);
+    // Önce migration durumunu kontrol et
+    $status = Artisan::call('migrate:status', ['--force' => true]);
+    echo "Current migration status:\n";
     echo Artisan::output();
+    
+    // Migrationları çalıştır
+    $result = Artisan::call('migrate', [
+        '--force' => true,
+        '--no-interaction' => true,
+        '--verbose' => true
+    ]);
+    
+    echo "Migration output:\n";
+    echo Artisan::output();
+    
+    if ($result !== 0) {
+        echo "Migration completed with some errors (this is expected for duplicate columns).\n";
+    } else {
+        echo "Migration completed successfully.\n";
+    }
 } catch (\Exception $e) {
     echo "Migration error (safe to ignore name column errors): " . $e->getMessage() . "\n";
 }

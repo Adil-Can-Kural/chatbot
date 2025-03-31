@@ -5,6 +5,12 @@ set -e
 
 echo "Building Laravel application for Render.com deployment..."
 
+# Composer cache dizinlerini oluştur
+echo "Creating Composer cache directories..."
+mkdir -p ~/.composer/cache/vcs
+mkdir -p ~/.composer/cache/repo
+chmod -R 777 ~/.composer
+
 # Composer bağımlılıklarını kur
 echo "Installing Composer dependencies..."
 COMPOSER_MEMORY_LIMIT=-1 composer install --no-dev --optimize-autoloader --no-scripts --no-interaction --prefer-dist
