@@ -66,4 +66,6 @@ services:
       - key: VITE_PUSHER_APP_CLUSTER
         value: "${PUSHER_APP_CLUSTER}"
       - key: LARAVEL_WEBSOCKETS_PORT
-        value: "6001" 
+        value: "6001"
+      - key: PORT
+        value: "80" 

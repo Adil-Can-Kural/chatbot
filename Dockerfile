@@ -1,8 +1,9 @@
-FROM php:8.2-fpm-alpine3.18
+FROM php:8.2-fpm-alpine3.18 AS build
 
+# Çalışma dizinini ayarla
 WORKDIR /var/www/html
 
-# Gerekli PHP eklentilerini ve bağımlılıkları kur
+# Gerekli paketleri yükle
 RUN apk update && apk add --no-cache \
     nginx \
     supervisor \
@@ -23,7 +24,7 @@ RUN apk update && apk add --no-cache \
     bind-tools \
     netcat-openbsd
 
-# GD konfigürasyonu ve PHP eklentilerinin kurulumu
+# PHP eklentilerini yapılandır ve yükle
 RUN docker-php-ext-configure gd --with-freetype --with-jpeg --with-webp \
     && docker-php-ext-install -j$(nproc) \
         pdo \
@@ -34,57 +35,40 @@ RUN docker-php-ext-configure gd --with-freetype --with-jpeg --with-webp \
         bcmath \
         gd
 
-# PHP-FPM için sembolik bağlantılar oluştur (path sorunlarını çözmek için)
-RUN ln -sf /usr/local/sbin/php-fpm /usr/sbin/php-fpm && \
-    ln -sf /usr/local/sbin/php-fpm /usr/sbin/php-fpm8 && \
-    ln -sf /usr/local/bin/php /usr/bin/php
-
-# Composer kur
+# Composer'ı yükle
 COPY --from=composer:latest /usr/bin/composer /usr/bin/composer
 
-# Scripts dizinini oluştur
-RUN mkdir -p /var/www/html/scripts
+# Composer'ı optimize et
+ENV COMPOSER_ALLOW_SUPERUSER=1
+ENV COMPOSER_HOME=/tmp
 
-# Önce betik dosyalarını kopyala
-COPY scripts /var/www/html/scripts/
+# NPM sürümünü güncelle
+RUN npm install -g npm@latest
 
-# Gerekli izinleri ayarla
-RUN chmod +x /var/www/html/scripts/build.sh && \
-    chmod +x /var/www/html/scripts/start.sh
-
-# composer.json ve composer.lock dosyalarını kopyala
-COPY composer.json composer.lock ./
-
-# Composer bağımlılıklarını yükle
-RUN composer install --no-dev --optimize-autoloader --no-scripts --no-interaction --prefer-dist
-
-# Kalan uygulama kodlarını kopyala
+# Uygulama dosyalarını kopyala
 COPY . /var/www/html/
 
-# Dizinlere gerekli izinleri ver
-RUN mkdir -p /var/www/html/storage/logs \
-    /var/www/html/storage/framework/sessions \
-    /var/www/html/storage/framework/views \
-    /var/www/html/storage/framework/cache \
-    && chmod -R 777 /var/www/html/storage \
-    && chmod -R 777 /var/www/html/bootstrap/cache \
-    && chown -R www-data:www-data /var/www/html
+# Supervisor yapılandırmasını kopyala
+RUN mkdir -p /etc/supervisor.d/
+COPY supervisord.conf /etc/supervisor.d/supervisord.ini
 
-# Nginx konfigürasyonu
-COPY ./nginx/default.conf /etc/nginx/http.d/default.conf
+# PHP ve PHP-FPM yapılandırmasını düzenle
+RUN { \
+    echo 'upload_max_filesize = 20M'; \
+    echo 'post_max_size = 20M'; \
+    echo 'max_execution_time = 300'; \
+    echo 'memory_limit = 512M'; \
+} > /usr/local/etc/php/conf.d/docker-fpm.ini
 
-# Supervisor konfigürasyonu
-COPY ./supervisord.conf /etc/supervisor/conf.d/supervisord.conf
+# Çalıştırma betiğini kopyala ve çalıştırılabilir hale getir
+COPY scripts/start.sh /start.sh
+RUN chmod +x /start.sh
 
-# Supervisor dizinlerini oluştur
-RUN mkdir -p /var/log/supervisor /var/log/nginx /run/nginx \
-    && chmod -R 777 /var/log/supervisor \
-    && chmod -R 777 /var/log/nginx \
-    && chmod -R 777 /run/nginx
+# Port değişkenini ortama ekle
+ENV PORT=80
 
-# Expose ports
-EXPOSE 80
-EXPOSE 6001
+# Portu dışa aç (Render.com dinamik olarak PORT değişkenini atayacak)
+EXPOSE $PORT
 
-# Başlangıç komutu
-CMD ["/bin/bash", "/var/www/html/scripts/start.sh"] 
+# Başlangıç ​​komutu
+CMD ["/start.sh"] 

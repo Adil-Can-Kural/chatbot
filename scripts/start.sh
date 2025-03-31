@@ -22,11 +22,17 @@ echo "PORT: $PORT" # Render.com'un atadığı port
 if [ -z "$PORT" ]; then
     echo "PORT değişkeni tanımlanmamış, varsayılan 80 kullanılıyor"
     export PORT=80
-else
-    echo "PORT değişkeni algılandı: $PORT"
-    # Nginx konfigürasyonunu dinamik olarak güncelle
-    sed -i "s|listen 80|listen $PORT|g" /etc/nginx/http.d/default.conf
 fi
+
+echo "PORT değişkeni algılandı: $PORT"
+
+# Nginx konfigürasyon dosyasını kopyala ve düzenle
+cp /var/www/html/nginx/default.conf /etc/nginx/http.d/default.conf
+sed -i "s|listen 80|listen $PORT|g" /etc/nginx/http.d/default.conf
+
+# Nginx konfigürasyonunu kontrol et
+echo "Checking Nginx configuration..."
+nginx -t || { echo "Nginx configuration error!"; exit 1; }
 
 # Çalışma dizinini kontrol et
 echo "Mevcut çalışma dizini: $(pwd)"
