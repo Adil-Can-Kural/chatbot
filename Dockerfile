@@ -22,7 +22,9 @@ RUN apk update && apk add --no-cache \
     postgresql-dev \
     bash \
     bind-tools \
-    netcat-openbsd
+    netcat-openbsd \
+    perl \
+    perl-dev
 
 # PHP eklentilerini yapılandır ve yükle
 RUN docker-php-ext-configure gd --with-freetype --with-jpeg --with-webp \
@@ -35,15 +37,15 @@ RUN docker-php-ext-configure gd --with-freetype --with-jpeg --with-webp \
         bcmath \
         gd
 
+# npm'yi uyumlu bir sürümle güncelle
+RUN npm install -g npm@9.6.6
+
 # Composer'ı yükle
 COPY --from=composer:latest /usr/bin/composer /usr/bin/composer
 
 # Composer'ı optimize et
 ENV COMPOSER_ALLOW_SUPERUSER=1
 ENV COMPOSER_HOME=/tmp
-
-# NPM sürümünü güncelle
-RUN npm install -g npm@latest
 
 # Uygulama dosyalarını kopyala
 COPY . /var/www/html/
