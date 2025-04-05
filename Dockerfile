@@ -51,6 +51,14 @@ RUN composer install --no-interaction --optimize-autoloader --no-dev --no-script
 # Kalan uygulama dosyalarını kopyala
 COPY . /var/www/html/
 
+# Frontend bağımlılıklarını yükle ve derle
+COPY package*.json ./
+RUN npm ci
+# Build dizinini oluştur ve izinleri/sahipliği ayarla
+RUN mkdir -p public/build && chown www-data:www-data public/build && chmod 775 public/build
+# Frontend varlıklarını derle
+RUN npm run build
+
 # Build aşamasındaki .env oluşturma, key generate ve cache komutları kaldırıldı.
 # Bunlar runtime'da start.sh içinde yapılacak.
 
