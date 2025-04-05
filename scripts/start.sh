@@ -38,6 +38,10 @@ if ! grep -q "^APP_KEY=.\+" .env; then
     php artisan key:generate --force
 fi
 
+# Composer script'lerini manuel olarak çalıştır (paketleri keşfet)
+echo "Discovering packages..."
+php artisan package:discover --ansi
+
 # Runtime'da cache'leri temizle ve oluştur
 echo "Clearing and generating caches..."
 php artisan config:clear

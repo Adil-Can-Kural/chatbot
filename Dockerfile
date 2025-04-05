@@ -45,8 +45,8 @@ ENV COMPOSER_HOME=/tmp
 # Uygulama dosyalarını kopyala (önce composer dosyaları, sonra geri kalanı cache'leme için)
 COPY composer.json composer.lock ./
 
-# Composer bağımlılıklarını yükle (Build aşamasında)
-RUN composer install --no-interaction --optimize-autoloader --no-dev
+# Composer bağımlılıklarını yükle (Build aşamasında, script çalıştırmadan)
+RUN composer install --no-interaction --optimize-autoloader --no-dev --no-scripts
 
 # Kalan uygulama dosyalarını kopyala
 COPY . /var/www/html/
