@@ -276,4 +276,4 @@ nginx -t
 
 # supervisor ile servisleri başlatacak şekilde ayarlandı
 echo "Setup completed successfully. Starting supervisord..."
-exec /usr/bin/supervisord -c /etc/supervisor/conf.d/supervisord.conf 
+exec /usr/bin/supervisord -c /etc/supervisor.d/supervisord.ini 

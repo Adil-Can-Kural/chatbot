@@ -42,8 +42,8 @@ COPY --from=composer:latest /usr/bin/composer /usr/bin/composer
 ENV COMPOSER_ALLOW_SUPERUSER=1
 ENV COMPOSER_HOME=/tmp
 
-# NPM sürümünü güncelle
-RUN npm install -g npm@latest
+# NPM kısmını kaldırıyoruz çünkü çalışma anında npm'e ihtiyaç duymuyoruz
+# ve npm@latest yükleme işlemi hata veriyor
 
 # Uygulama dosyalarını kopyala
 COPY . /var/www/html/
