@@ -72,3 +72,10 @@ EXPOSE $PORT
 
 # Başlangıç ​​komutu
 CMD ["/start.sh"] 
+# Composer bağımlılıklarını yükle (Build aşamasında)
+RUN composer install --no-interaction --optimize-autoloader --no-dev
+
+# İsteğe bağlı: Build aşamasında cache'leme (Performans için)
+RUN php artisan config:cache
+RUN php artisan route:cache 
+# RUN php artisan view:cache # İhtiyaç varsa
