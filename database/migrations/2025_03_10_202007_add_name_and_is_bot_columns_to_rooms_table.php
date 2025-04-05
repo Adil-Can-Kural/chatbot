@@ -14,8 +14,12 @@ return new class extends Migration
     public function up()
     {
         Schema::table('rooms', function (Blueprint $table) {
-            $table->string('name')->nullable()->after('type');
-            $table->boolean('is_bot')->default(false)->after('name');
+            if (!Schema::hasColumn('rooms', 'name')) {
+                $table->string('name')->nullable()->after('type');
+            }
+            if (!Schema::hasColumn('rooms', 'is_bot')) {
+                $table->boolean('is_bot')->default(false)->after('name');
+            }
         });
     }
 
@@ -27,7 +31,12 @@ return new class extends Migration
     public function down()
     {
         Schema::table('rooms', function (Blueprint $table) {
-            $table->dropColumn(['name', 'is_bot']);
+            if (Schema::hasColumn('rooms', 'name')) {
+                $table->dropColumn('name');
+            }
+            if (Schema::hasColumn('rooms', 'is_bot')) {
+                $table->dropColumn('is_bot');
+            }
         });
     }
 };

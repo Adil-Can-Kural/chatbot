@@ -35,12 +35,7 @@ fi
 
 # Render Ortam Değişkenlerini .env dosyasına yaz
 echo "Updating .env with Render environment variables..."
-if [ -n "$DATABASE_URL" ]; then
-    # Eğer DATABASE_URL varsa, onu kullan (Render genellikle bunu sağlar)
-    # Bu kısım DATABASE_URL'yi ayrıştırmak için daha karmaşık olabilir,
-    # şimdilik bireysel DB_* değişkenlerini varsayalım.
-    echo "DATABASE_URL detected, ensure your config/database.php can parse it or use individual DB_* vars."
-fi
+echo "DB_HOST from env var: [${DB_HOST}]" # Debug için eklendi
 
 # Bireysel DB_* değişkenlerini .env dosyasına yaz
 # Render'ın bu değişkenleri sağladığından emin olun!
@@ -79,15 +74,16 @@ echo "Clearing and generating caches..."
 php artisan config:clear
 php artisan route:clear
 # php artisan view:clear # İhtiyaç varsa
-php artisan cache:clear
+php artisan cache:clear || echo "Cache clear failed, continuing..."
 
 php artisan config:cache
 php artisan route:cache
 # php artisan view:cache # İhtiyaç varsa
 
-# Migration'dan önce kısa bir bekleme ekleyelim (ağ/dns için)
-echo "Waiting 5 seconds before migration..."
-sleep 5
+# Migration'dan önce DNS çözümlemesini test et
+echo "Testing DNS resolution for DB_HOST: [${DB_HOST}]"
+nslookup ${DB_HOST} || echo "DNS lookup failed for DB_HOST!"
+sleep 2 # Kısa bir ek bekleme
 
 echo "Running migrations..."
 # --force genellikle production ortamında otomatik onay için kullanılır
