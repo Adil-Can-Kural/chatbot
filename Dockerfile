@@ -45,8 +45,25 @@ ENV COMPOSER_HOME=/tmp
 # NPM kısmını kaldırıyoruz çünkü çalışma anında npm'e ihtiyaç duymuyoruz
 # ve npm@latest yükleme işlemi hata veriyor
 
-# Uygulama dosyalarını kopyala
+# Uygulama dosyalarını kopyala (önce composer dosyaları, sonra geri kalanı cache'leme için)
+COPY composer.json composer.lock ./
+
+# Composer bağımlılıklarını yükle (Build aşamasında)
+RUN composer install --no-interaction --optimize-autoloader --no-dev
+
+# Kalan uygulama dosyalarını kopyala
 COPY . /var/www/html/
+
+# .env dosyasını oluştur ve temel ayarları yap (cache komutları için)
+# Render.com build sırasında ortam değişkenlerini enjekte etmez, bu yüzden örnekten kopyalıyoruz
+RUN cp .env.example .env
+# Build sırasında dummy bir key ekleyebiliriz, runtime'da üzerine yazılacak
+RUN php artisan key:generate
+
+# İsteğe bağlı: Build aşamasında cache'leme (Performans için)
+RUN php artisan config:cache
+RUN php artisan route:cache 
+# RUN php artisan view:cache # İhtiyaç varsa
 
 # Supervisor yapılandırmasını kopyala
 RUN mkdir -p /etc/supervisor.d/
@@ -71,11 +88,4 @@ ENV PORT=80
 EXPOSE $PORT
 
 # Başlangıç ​​komutu
-CMD ["/start.sh"] 
-# Composer bağımlılıklarını yükle (Build aşamasında)
-RUN composer install --no-interaction --optimize-autoloader --no-dev
-
-# İsteğe bağlı: Build aşamasında cache'leme (Performans için)
-RUN php artisan config:cache
-RUN php artisan route:cache 
-# RUN php artisan view:cache # İhtiyaç varsa
+CMD ["/start.sh"]

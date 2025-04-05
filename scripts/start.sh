@@ -23,8 +23,14 @@ nginx -t || { echo "Nginx configuration error!"; exit 1; }
 echo "Current working directory: $(pwd)"
 ls -la # vendor dizini build'de oluşmuş olmalı
 
-# Anahtar yoksa oluştur (ilk deploy için önemli)
-if [ ! -f .env ] || ! grep -q "^APP_KEY=.*" .env; then
+# .env dosyasını kontrol et ve yoksa oluştur
+if [ ! -f .env ]; then
+    echo ".env file not found. Copying from .env.example..."
+    cp .env.example .env
+fi
+
+# Uygulama anahtarı yoksa veya boşsa oluştur
+if ! grep -q "^APP_KEY=.\+" .env; then
     echo "Generating application key..."
     php artisan key:generate --force
 fi
