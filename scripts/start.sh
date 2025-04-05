@@ -6,6 +6,7 @@ mkdir -p /run/nginx /var/log/supervisor /var/log/nginx
 
 echo "Environment variables (Check if Render injected them):"
 printenv | grep DB_ # Veya ilgili değişkenler
+printenv | grep PUSHER_ # Veya ilgili değişkenler
 echo "PORT: $PORT"
 
 if [ -z "$PORT" ]; then
@@ -32,6 +33,37 @@ if [ ! -f .env ]; then
     php artisan key:generate --force
 fi
 
+# Render Ortam Değişkenlerini .env dosyasına yaz
+echo "Updating .env with Render environment variables..."
+if [ -n "$DATABASE_URL" ]; then
+    # Eğer DATABASE_URL varsa, onu kullan (Render genellikle bunu sağlar)
+    # Bu kısım DATABASE_URL'yi ayrıştırmak için daha karmaşık olabilir,
+    # şimdilik bireysel DB_* değişkenlerini varsayalım.
+    echo "DATABASE_URL detected, ensure your config/database.php can parse it or use individual DB_* vars."
+fi
+
+# Bireysel DB_* değişkenlerini .env dosyasına yaz
+# Render'ın bu değişkenleri sağladığından emin olun!
+sed -i "s|^DB_CONNECTION=.*|DB_CONNECTION=${DB_CONNECTION:-pgsql}|g" .env
+sed -i "s|^DB_HOST=.*|DB_HOST=${DB_HOST}|g" .env
+sed -i "s|^DB_PORT=.*|DB_PORT=${DB_PORT:-5432}|g" .env
+sed -i "s|^DB_DATABASE=.*|DB_DATABASE=${DB_DATABASE}|g" .env
+sed -i "s|^DB_USERNAME=.*|DB_USERNAME=${DB_USERNAME}|g" .env
+sed -i "s|^DB_PASSWORD=.*|DB_PASSWORD=${DB_PASSWORD}|g" .env
+
+# Pusher değişkenlerini de güncelle
+sed -i "s|^PUSHER_APP_ID=.*|PUSHER_APP_ID=${PUSHER_APP_ID}|g" .env
+sed -i "s|^PUSHER_APP_KEY=.*|PUSHER_APP_KEY=${PUSHER_APP_KEY}|g" .env
+sed -i "s|^PUSHER_APP_SECRET=.*|PUSHER_APP_SECRET=${PUSHER_APP_SECRET}|g" .env
+sed -i "s|^PUSHER_HOST=.*|PUSHER_HOST=${PUSHER_HOST}|g" .env
+sed -i "s|^PUSHER_PORT=.*|PUSHER_PORT=${PUSHER_PORT:-443}|g" .env
+sed -i "s|^PUSHER_SCHEME=.*|PUSHER_SCHEME=${PUSHER_SCHEME:-https}|g" .env
+
+# APP_URL gibi diğer önemli değişkenler
+sed -i "s|^APP_URL=.*|APP_URL=${APP_URL}|g" .env
+sed -i "s|^APP_ENV=.*|APP_ENV=${APP_ENV:-production}|g" .env
+sed -i "s|^APP_DEBUG=.*|APP_DEBUG=${APP_DEBUG:-false}|g" .env
+
 # Uygulama anahtarı yoksa veya boşsa oluştur (varsa dokunma)
 if ! grep -q "^APP_KEY=.\+" .env; then
     echo "Generating application key as it was empty..."
@@ -52,6 +84,10 @@ php artisan cache:clear
 php artisan config:cache
 php artisan route:cache
 # php artisan view:cache # İhtiyaç varsa
+
+# Migration'dan önce kısa bir bekleme ekleyelim (ağ/dns için)
+echo "Waiting 5 seconds before migration..."
+sleep 5
 
 echo "Running migrations..."
 # --force genellikle production ortamında otomatik onay için kullanılır
