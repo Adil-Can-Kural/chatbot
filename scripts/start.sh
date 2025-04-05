@@ -27,22 +27,36 @@ ls -la # vendor dizini build'de oluşmuş olmalı
 if [ ! -f .env ]; then
     echo ".env file not found. Copying from .env.example..."
     cp .env.example .env
-fi
-
-# Uygulama anahtarı yoksa veya boşsa oluştur
-if ! grep -q "^APP_KEY=.\+" .env; then
+    # .env dosyası yeni oluşturulduysa, key generate kesinlikle çalışmalı
     echo "Generating application key..."
     php artisan key:generate --force
 fi
 
-# İzinleri ayarla (Yine de yapmak iyi olabilir)
+# Uygulama anahtarı yoksa veya boşsa oluştur (varsa dokunma)
+if ! grep -q "^APP_KEY=.\+" .env; then
+    echo "Generating application key as it was empty..."
+    php artisan key:generate --force
+fi
+
+# Runtime'da cache'leri temizle ve oluştur
+echo "Clearing and generating caches..."
+php artisan config:clear
+php artisan route:clear
+# php artisan view:clear # İhtiyaç varsa
+php artisan cache:clear
+
+php artisan config:cache
+php artisan route:cache
+# php artisan view:cache # İhtiyaç varsa
+
+echo "Running migrations..."
+# --force genellikle production ortamında otomatik onay için kullanılır
+php artisan migrate --force || echo "Migration failed or already up-to-date."
+
+# İzinleri ayarla
 echo "Setting proper permissions..."
 chown -R www-data:www-data /var/www/html/storage /var/www/html/bootstrap/cache
 chmod -R 775 /var/www/html/storage /var/www/html/bootstrap/cache
-
-# **EĞER MIGRATION RUNTIME'DA ÇALIŞACAKSA (Build'de değilse)**
-# echo "Running migrations..."
-# php artisan migrate --force || echo "Migration failed or already up-to-date."
 
 echo "Setup completed successfully. Starting supervisord..."
 exec /usr/bin/supervisord -c /etc/supervisor.d/supervisord.ini
