@@ -65,20 +65,23 @@ if ! grep -q "^APP_KEY=.\+" .env; then
     php artisan key:generate --force
 fi
 
-# Composer script'lerini manuel olarak çalıştır (paketleri keşfet)
+# Önce paketleri keşfet
 echo "Discovering packages..."
 php artisan package:discover --ansi
 
-# Runtime'da cache'leri temizle ve oluştur
-echo "Clearing and generating caches..."
-php artisan config:clear
-php artisan route:clear
-# php artisan view:clear # İhtiyaç varsa
-php artisan cache:clear || echo "Cache clear failed, continuing..."
+# Sonra tüm cache'leri temizle
+echo "Clearing all caches..."
+php artisan optimize:clear
+# php artisan cache:clear # optimize:clear bunu zaten yapmalı
+# php artisan config:clear # optimize:clear bunu zaten yapmalı
+# php artisan route:clear # optimize:clear bunu zaten yapmalı
+# php artisan view:clear # optimize:clear bunu zaten yapmalı
 
+# Gerekli cache'leri yeniden oluştur
+echo "Generating caches..."
 php artisan config:cache
 php artisan route:cache
-# php artisan view:cache # İhtiyaç varsa
+# php artisan view:cache # İhtiyaç duyulursa
 
 # Migration'dan önce DNS çözümlemesini test et
 echo "Testing DNS resolution for DB_HOST: [${DB_HOST}]"
