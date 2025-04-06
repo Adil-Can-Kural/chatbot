@@ -62,7 +62,7 @@ sed -i "s|^APP_DEBUG=.*|APP_DEBUG=${APP_DEBUG:-false}|g" .env
 # Uygulama anahtarı yoksa veya boşsa oluştur (varsa dokunma)
 if ! grep -q "^APP_KEY=.\+" .env; then
     echo "Generating application key as it was empty..."
-    php artisan key:generate --force
+php artisan key:generate --force
 fi
 
 # Önce paketleri keşfet

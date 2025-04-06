@@ -456,6 +456,12 @@ const chatbotMessages = ref([]);
 const isTyping = ref(false);
 const groqApiKey = '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'; // Groq API anahtarı
 
+// Tersleme mantığı için değişkenler
+const unansweredCounters = ref({ Elif: 0, Serdar: 0, Nazli: 0 });
+const firstUnansweredTimestamps = ref({ Elif: null, Serdar: null, Nazli: null });
+const SNAPPY_THRESHOLD_COUNT = 3; // Tersleme için gereken ardışık cevapsız mesaj sayısı
+const SNAPPY_THRESHOLD_MINUTES = 2; // Tersleme için gereken süre (dakika)
+
 // Stable Diffusion için değişkenler
 const isGeneratingImage = ref(false);
 const stableDiffusionApiKey = 'sk-'; // Buraya Stable Diffusion API anahtarınızı ekleyin
@@ -741,11 +747,31 @@ const addNazliToContacts = () => {
 // Nazlı'ya mesaj gönder
 const askNazli = async (prompt) => {
   if (!prompt) return;
+  const botName = 'Nazli'; // Bot adını tanımla
+
+  // Tersleme kontrolü
+  const count = unansweredCounters.value[botName];
+  const timestamp = firstUnansweredTimestamps.value[botName];
+  const now = new Date();
+
+  if (count >= SNAPPY_THRESHOLD_COUNT && timestamp && (now - timestamp) / (1000 * 60) >= SNAPPY_THRESHOLD_MINUTES) {
+    addSnappyMessage(botName);
+    // Sayaçları sıfırla
+    unansweredCounters.value[botName] = 0;
+    firstUnansweredTimestamps.value[botName] = null;
+    isTyping.value = false;
+    return; // Tersleme yanıtı gönderildiyse işlemi bitir
+  }
 
   // %35 olasılıkla cevap vermeme (Nazlı için artırıldı)
   if (Math.random() < 0.35) {
+    // Cevap vermeme durumunda sayaçları güncelle
+    unansweredCounters.value[botName]++;
+    if (!firstUnansweredTimestamps.value[botName]) {
+      firstUnansweredTimestamps.value[botName] = new Date();
+    }
     isTyping.value = false;
-    return;
+    return; // Cevap vermiyorsa işlemi bitir
   }
 
   // Yazıyor efekti
@@ -1307,11 +1333,31 @@ const formatLastMessage = (message, maxLength = 30) => {
 // Groq API'ye istek gönder (Llama 3.3 modeli)
 const askGroq = async (prompt) => {
   if (!prompt) return;
+  const botName = 'Elif'; // Bot adını tanımla
+
+  // Tersleme kontrolü
+  const count = unansweredCounters.value[botName];
+  const timestamp = firstUnansweredTimestamps.value[botName];
+  const now = new Date();
+
+  if (count >= SNAPPY_THRESHOLD_COUNT && timestamp && (now - timestamp) / (1000 * 60) >= SNAPPY_THRESHOLD_MINUTES) {
+    addSnappyMessage(botName);
+    // Sayaçları sıfırla
+    unansweredCounters.value[botName] = 0;
+    firstUnansweredTimestamps.value[botName] = null;
+    isTyping.value = false;
+    return; // Tersleme yanıtı gönderildiyse işlemi bitir
+  }
 
   // %30 olasılıkla cevap vermeme (Elif için artırıldı)
   if (Math.random() < 0.3) {
+    // Cevap vermeme durumunda sayaçları güncelle
+    unansweredCounters.value[botName]++;
+    if (!firstUnansweredTimestamps.value[botName]) {
+      firstUnansweredTimestamps.value[botName] = new Date();
+    }
     isTyping.value = false;
-    return;
+    return; // Cevap vermiyorsa işlemi bitir
   }
 
   // Yazıyor efekti
@@ -1430,11 +1476,31 @@ const askGroq = async (prompt) => {
 // Serdar'a mesaj gönder (pasif agresif chatbot)
 const askSerdar = async (prompt) => {
   if (!prompt) return;
+  const botName = 'Serdar'; // Bot adını tanımla
+
+  // Tersleme kontrolü
+  const count = unansweredCounters.value[botName];
+  const timestamp = firstUnansweredTimestamps.value[botName];
+  const now = new Date();
+
+  if (count >= SNAPPY_THRESHOLD_COUNT && timestamp && (now - timestamp) / (1000 * 60) >= SNAPPY_THRESHOLD_MINUTES) {
+    addSnappyMessage(botName);
+    // Sayaçları sıfırla
+    unansweredCounters.value[botName] = 0;
+    firstUnansweredTimestamps.value[botName] = null;
+    isTyping.value = false;
+    return; // Tersleme yanıtı gönderildiyse işlemi bitir
+  }
 
   // %45 olasılıkla cevap vermeme (Serdar için önemli ölçüde artırıldı)
   if (Math.random() < 0.45) {
+    // Cevap vermeme durumunda sayaçları güncelle
+    unansweredCounters.value[botName]++;
+    if (!firstUnansweredTimestamps.value[botName]) {
+      firstUnansweredTimestamps.value[botName] = new Date();
+    }
     isTyping.value = false;
-    return;
+    return; // Cevap vermiyorsa işlemi bitir
   }
 
   // Yazıyor efekti
@@ -1624,6 +1690,63 @@ const addSerdarMessage = (message) => {
     console.log('Serdar sohbet geçmişi kaydedildi:', selectedRoom.messages);
   }
   
+  scrollToBottomOfChat();
+};
+
+// Tersleme mesajı ekle
+const addSnappyMessage = (botName) => {
+  if (!selectedRoom.id) return;
+
+  let userId, userName, snappyMessageText;
+
+  switch (botName) {
+    case 'Elif':
+      userId = -1;
+      userName = 'Elif';
+      snappyMessageText = "Yeter artık! Sürekli yazıp duruyorsun, cevap vermediğimi görmüyor musun? Biraz bekle lütfen! ❤️"; // Elif'in tarzına uygun
+      break;
+    case 'Serdar':
+      userId = -2;
+      userName = 'Serdar';
+      snappyMessageText = "Bak yine yazdı... Cevap vermediğimi anlamak bu kadar zor mu? Başka işim gücüm var benim."; // Serdar'ın tarzına uygun
+      break;
+    case 'Nazli':
+      userId = -3;
+      userName = 'Nazlı';
+      snappyMessageText = "Sürekli mesaj atıyorsun. Cevap vermiyorsam bir sebebi vardır, değil mi? Biraz bekler misin?"; // Nazlı'nın tarzına uygun
+      break;
+    default:
+      return; // Bilinmeyen bot adı
+  }
+
+  const snappyMessage = {
+    id: `${botName.toLowerCase()}-snappy-${Math.floor(Math.random() * 1000000)}`,
+    message: snappyMessageText,
+    created_at: new Date(),
+    user_id: userId,
+    user_name: userName
+  };
+
+  selectedRoom.messages.push(snappyMessage);
+
+  // Son mesajı güncelle
+  const roomIndex = rooms.data.findIndex(room => room.id === selectedRoom.id);
+  if (roomIndex !== -1) {
+    rooms.data[roomIndex].last_message = {
+      message: snappyMessageText,
+      created_at: new Date()
+    };
+  }
+
+  // Sohbet geçmişini kaydet (ilgili bot için)
+  if (selectedRoom.name === 'Elif') {
+    saveChatHistory(selectedRoom.messages);
+  } else if (selectedRoom.name === 'Serdar') {
+    saveSerdarChatHistory(selectedRoom.messages);
+  } else if (selectedRoom.name === 'Nazli') {
+    saveNazliChatHistory(selectedRoom.messages);
+  }
+
   scrollToBottomOfChat();
 };
 
