@@ -1,6 +1,5 @@
 <script setup>
-import { reactive, defineProps, toRefs, onMounted, onUnmounted, ref } from 'vue';
-import { Groq } from 'groq-sdk';
+import { reactive, defineProps, toRefs, onMounted, onUnmounted, ref } from 'vue'
 import moment from 'moment';
 import 'emoji-picker-element';
 
@@ -748,7 +747,7 @@ const addNazliToContacts = () => {
 // Nazlı'ya mesaj gönder
 const askNazli = async (prompt) => {
   if (!prompt) return;
-  const botName = 'Nazli';
+  const botName = 'Nazli'; // Bot adını tanımla
 
   // Tersleme kontrolü
   const count = unansweredCounters.value[botName];
@@ -757,30 +756,36 @@ const askNazli = async (prompt) => {
 
   if (count >= SNAPPY_THRESHOLD_COUNT && timestamp && (now - timestamp) / (1000 * 60) >= SNAPPY_THRESHOLD_MINUTES) {
     addSnappyMessage(botName);
+    // Sayaçları sıfırla
     unansweredCounters.value[botName] = 0;
     firstUnansweredTimestamps.value[botName] = null;
     isTyping.value = false;
-    return;
+    return; // Tersleme yanıtı gönderildiyse işlemi bitir
   }
 
-  // %35 olasılıkla cevap vermeme
+  // %35 olasılıkla cevap vermeme (Nazlı için artırıldı)
   if (Math.random() < 0.35) {
+    // Cevap vermeme durumunda sayaçları güncelle
     unansweredCounters.value[botName]++;
     if (!firstUnansweredTimestamps.value[botName]) {
       firstUnansweredTimestamps.value[botName] = new Date();
     }
     isTyping.value = false;
-    return;
+    return; // Cevap vermiyorsa işlemi bitir
   }
 
+  // Yazıyor efekti
   isTyping.value = true;
   
   try {
+    // Sohbet geçmişini hazırla
     const allMessages = selectedRoom.messages;
     const messages = [];
     
+    // Son 10 mesajı al
     const recentMessages = allMessages.slice(-10);
     
+    // Sistem mesajı ekle
     messages.push({
       role: "system",
       content: `Sen Nazlı'sın. 25 yaşında, biraz soğuk ama insanlarla tanışmak isteyen birisin. 
@@ -827,6 +832,7 @@ const askNazli = async (prompt) => {
       - Sessizliği sevdiğini ama sohbet etmeyi de sevdiğini belirt`
     });
     
+    // Son mesajları ekle
     recentMessages.forEach(msg => {
       const role = msg.user_id === Inertia.page.props.user.id ? "user" : "assistant";
       messages.push({
@@ -835,109 +841,43 @@ const askNazli = async (prompt) => {
       });
     });
     
-    messages.push({
+    // Son kullanıcı mesajını ekle
+    if (allMessages.length === 0 || allMessages[allMessages.length - 1].user_id !== Inertia.page.props.user.id) {
+      messages.push({
         role: "user",
         content: prompt
-    });
-
-    const groqApiKey = import.meta.env.VITE_GROQ_API_KEY;
-
-    if (!groqApiKey) {
-        console.error("Groq API anahtarı yapılandırılmamış. Lütfen .env dosyanızda VITE_GROQ_API_KEY değişkenini ayarlayın.");
-        const errorBotMessage = {
-            id: `bot-error-${Date.now()}`, user_id: 'nazli-ai',
-            user: { name: 'Nazlı', profile_photo_url: '/images/nazli_avatar.png' },
-            room_id: selectedRoom.id, message: "Üzgünüm, bir yapılandırma hatası var. Lütfen daha sonra tekrar dene.",
-            created_at: new Date(), type: 'text', read_at: null, is_edited: false, is_deleted: false,
-        };
-        selectedRoom.messages.push(errorBotMessage);
-        scrollToBottomOfChat();
-        saveNazliChatHistory(selectedRoom.messages);
-        isTyping.value = false;
-        return;
+      });
     }
-
-    const groq = new Groq({ apiKey: groqApiKey, dangerouslyAllowBrowser: true });
-
-    const botMessageId = `bot-${Date.now()}`;
-    const newBotMessage = reactive({
-        id: botMessageId,
-        user_id: 'nazli-ai',
-        user: { name: 'Nazlı', profile_photo_url: '/images/nazli_avatar.png' },
-        room_id: selectedRoom.id,
-        message: '',
-        created_at: new Date(),
-        type: 'text',
-        read_at: null,
-        is_edited: false,
-        is_deleted: false,
-    });
-    selectedRoom.messages.push(newBotMessage);
-    scrollToBottomOfChat();
-
+    
+    // DeepSeek API'ye istek gönderme
     try {
-        const chatCompletion = await groq.chat.completions.create({
-            messages: messages,
-            model: "meta-llama/llama-4-maverick-17b-128e-instruct",
-            temperature: 1,
-            max_tokens: 1024,
-            top_p: 1,
-            stream: true,
-            stop: null
-        });
-
-        let accumulatedContent = "";
-        for await (const chunk of chatCompletion) {
-            const contentChunk = chunk.choices[0]?.delta?.content || '';
-            if (contentChunk) {
-                accumulatedContent += contentChunk;
-                const messageToUpdate = selectedRoom.messages.find(m => m.id === botMessageId);
-                if (messageToUpdate) {
-                    messageToUpdate.message += contentChunk;
-                    scrollToBottomOfChat(); 
-                }
-            }
+      const response = await axios.post('https://api.groq.com/openai/v1/chat/completions', {
+        model: "deepseek-r1-distill-llama-70b",
+        messages: messages,
+        temperature: 0.7,
+        max_tokens: 150,
+        top_p: 0.95,
+        stream: false
+      }, {
+        headers: {
+          'Authorization': `Bearer ${groqApiKey}`,
+          'Content-Type': 'application/json'
         }
-
-        if (accumulatedContent.trim() === "") {
-            const messageToUpdate = selectedRoom.messages.find(m => m.id === botMessageId);
-            if (messageToUpdate) {
-                messageToUpdate.message = "...";
-            }
-        }
-        unansweredCounters.value[botName] = 0;
-        firstUnansweredTimestamps.value[botName] = null;
-
+      });
+      
+      if (response.data && response.data.choices && response.data.choices.length > 0) {
+        const aiResponse = response.data.choices[0].message.content;
+        addNazliMessage(aiResponse);
+      } else {
+        throw new Error("DeepSeek API yanıtı beklenen formatta değil");
+      }
     } catch (apiError) {
-        console.error('Groq API hatası:', apiError);
-        const messageToUpdate = selectedRoom.messages.find(m => m.id === botMessageId);
-        if (messageToUpdate) {
-            messageToUpdate.message = "Üzgünüm, bir sorun oluştu. Daha sonra tekrar deneyebilirsin.";
-        } else {
-            const errorFallbackMsg = {
-                id: `bot-error-fallback-${Date.now()}`, user_id: 'nazli-ai',
-                user: { name: 'Nazlı', profile_photo_url: '/images/nazli_avatar.png' },
-                room_id: selectedRoom.id, message: "Yanıt alınırken bir hata oluştu.",
-                created_at: new Date(), type: 'text', read_at: null, is_edited: false, is_deleted: false,
-            };
-            selectedRoom.messages.push(errorFallbackMsg);
-            scrollToBottomOfChat();
-        }
-    } finally {
-        saveNazliChatHistory(selectedRoom.messages);
+      console.error('DeepSeek API hatası:', apiError);
+      addNazliMessage("Üzgünüm, şu anda yanıt veremiyorum. Daha sonra konuşabiliriz.");
     }
-
   } catch (error) {
-    console.error('Nazlı yanıt genel hatası:', error);
-    const generalErrorMsg = {
-        id: `bot-general-error-${Date.now()}`, user_id: 'nazli-ai',
-        user: { name: 'Nazlı', profile_photo_url: '/images/nazli_avatar.png' },
-        room_id: selectedRoom.id, message: "Beklenmedik bir sorun oluştu.",
-        created_at: new Date(), type: 'text', read_at: null, is_edited: false, is_deleted: false,
-    };
-    selectedRoom.messages.push(generalErrorMsg);
-    scrollToBottomOfChat();
-    saveNazliChatHistory(selectedRoom.messages);
+    console.error('Nazlı yanıt hatası:', error);
+    addNazliMessage("Bir sorun oluştu. Daha sonra konuşabiliriz.");
   } finally {
     isTyping.value = false;
   }
