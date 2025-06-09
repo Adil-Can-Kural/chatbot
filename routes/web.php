@@ -52,6 +52,10 @@ Route::middleware([
     Route::post('/new-chat', [NewChatController::class, 'store'])->name('new-chat.store');
 });
 
+Route::get('/login', function () {
+    return inertia('Auth/Login');
+})->name('login');
+
 Route::post('/login', function (Request $request) {
     $request->validate([
         'username' => 'required|exists:users,username',
@@ -67,4 +71,4 @@ Route::post('/login', function (Request $request) {
     }
 
     return back()->withErrors(['username' => 'Giriş başarısız.']);
-});
+})->name('login');
