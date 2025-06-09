@@ -19,9 +19,9 @@ window.axios.defaults.headers.common['X-Requested-With'] = 'XMLHttpRequest';
  */
 
 import Echo from 'laravel-echo';
-import Pusher from 'pusher-js';
+import io from 'socket.io-client';
 
-window.Pusher = Pusher;
+window.io = io;
 
 // CSRF token'ını güvenli bir şekilde al
 const getCsrfToken = () => {
@@ -30,8 +30,20 @@ const getCsrfToken = () => {
 };
 
 window.Echo = new Echo({
-    broadcaster: 'pusher',
-    key: '197b5fda18d9c73dc2f5', // Pusher key
-    cluster: 'eu',
-    forceTLS: true
+    broadcaster: 'socket.io',
+    host: window.location.hostname + ':6001',
+    client: io,
+    transports: ['polling', 'websocket'],
+    enabledTransports: ['polling', 'websocket'],
+    forceTLS: false,
+    encrypted: false,
+    disableStats: true,
+    reconnection: true,
+    reconnectionAttempts: 5,
+    reconnectionDelay: 3000,
+    auth: {
+        headers: {
+            'X-CSRF-TOKEN': getCsrfToken()
+        }
+    }
 });

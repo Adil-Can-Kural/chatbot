@@ -11,9 +11,6 @@ use App\Http\Controllers\RoomController;
 use App\Http\Controllers\RoomMessageController;
 use App\Http\Controllers\UserController;
 use Illuminate\Support\Facades\Route;
-use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Auth;
-use Illuminate\Support\Facades\Hash;
 
 /*
 |--------------------------------------------------------------------------
@@ -51,29 +48,4 @@ Route::middleware([
     Route::delete('/rooms/{room}/messages/{message}', [MessageController::class, 'destroy'])->name('messages.destroy');
     Route::post('/rooms', [RoomController::class, 'store'])->name('rooms.store');
     Route::post('/new-chat', [NewChatController::class, 'store'])->name('new-chat.store');
-});
-
-Route::get('/login', function () {
-    return inertia('Auth/Login');
-})->name('login');
-
-Route::post('/login', function (Request $request) {
-    $request->validate([
-        'username' => 'required',
-    ], [
-        'username.required' => 'Kullanıcı adı alanı gereklidir.',
-    ]);
-
-    // Kullanıcı yoksa yeni bir kullanıcı oluştur
-    $user = \App\Models\User::firstOrCreate(
-        ['username' => $request->username],
-        [
-            'name' => $request->username,
-            'email' => $request->username . '@example.com',
-            'password' => Hash::make($request->username) // Set a hashed password
-        ]
-    );
-
-    Auth::login($user);
-    return response('', 204); // Inertia için
 });
