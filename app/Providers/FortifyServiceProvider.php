@@ -60,23 +60,23 @@ class FortifyServiceProvider extends ServiceProvider
         });
 
         // Login validation'ı override et
-        app('router')->post('login', function (\Illuminate\Http\Request $request) {
-            $request->validate([
-                'username' => 'required|exists:users,username',
-            ], [
-                'username.required' => 'Kullanıcı adı alanı gereklidir.',
-                'username.exists' => 'Bu kullanıcı adı sistemde bulunamadı.',
-            ]);
-
-            $user = \App\Models\User::where('username', $request->username)->first();
-            if ($user) {
-                Auth::login($user);
-                // Inertia ile başarılı girişte frontend'e 204 döndür
-                return response('', 204);
-            }
-
-            // Hata varsa Inertia ile error döndür
-            return back()->withErrors(['username' => 'Giriş başarısız.']);
-        });
+        // app('router')->post('login', function (\Illuminate\Http\Request $request) {
+        //     $request->validate([
+        //         'username' => 'required|exists:users,username',
+        //     ], [
+        //         'username.required' => 'Kullanıcı adı alanı gereklidir.',
+        //         'username.exists' => 'Bu kullanıcı adı sistemde bulunamadı.',
+        //     ]);
+        //
+        //     $user = \App\Models\User::where('username', $request->username)->first();
+        //     if ($user) {
+        //         Auth::login($user);
+        //         // Inertia ile başarılı girişte frontend'e 204 döndür
+        //         return response('', 204);
+        //     }
+        //
+        //     // Hata varsa Inertia ile error döndür
+        //     return back()->withErrors(['username' => 'Giriş başarısız.']);
+        // });
     }
 }
