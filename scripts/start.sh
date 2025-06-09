@@ -90,7 +90,7 @@ sleep 2 # Kısa bir ek bekleme
 
 echo "Running migrations..."
 # --force genellikle production ortamında otomatik onay için kullanılır
-php artisan migrate
+php artisan migrate --force
 
 # İzinleri ayarla
 echo "Setting proper permissions..."
