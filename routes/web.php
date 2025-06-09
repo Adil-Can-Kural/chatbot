@@ -11,6 +11,8 @@ use App\Http\Controllers\RoomController;
 use App\Http\Controllers\RoomMessageController;
 use App\Http\Controllers\UserController;
 use Illuminate\Support\Facades\Route;
+use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Auth;
 
 /*
 |--------------------------------------------------------------------------
@@ -48,4 +50,21 @@ Route::middleware([
     Route::delete('/rooms/{room}/messages/{message}', [MessageController::class, 'destroy'])->name('messages.destroy');
     Route::post('/rooms', [RoomController::class, 'store'])->name('rooms.store');
     Route::post('/new-chat', [NewChatController::class, 'store'])->name('new-chat.store');
+});
+
+Route::post('/login', function (Request $request) {
+    $request->validate([
+        'username' => 'required|exists:users,username',
+    ], [
+        'username.required' => 'Kullanıcı adı alanı gereklidir.',
+        'username.exists' => 'Bu kullanıcı adı sistemde bulunamadı.',
+    ]);
+
+    $user = \App\Models\User::where('username', $request->username)->first();
+    if ($user) {
+        Auth::login($user);
+        return response('', 204); // Inertia için
+    }
+
+    return back()->withErrors(['username' => 'Giriş başarısız.']);
 });
