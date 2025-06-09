@@ -71,4 +71,4 @@ Route::post('/login', function (Request $request) {
     }
 
     return back()->withErrors(['username' => 'Giriş başarısız.']);
-})->name('login');
+});
