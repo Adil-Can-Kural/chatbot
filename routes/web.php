@@ -58,17 +58,17 @@ Route::get('/login', function () {
 
 Route::post('/login', function (Request $request) {
     $request->validate([
-        'username' => 'required|exists:users,username',
+        'username' => 'required',
     ], [
         'username.required' => 'Kullanıcı adı alanı gereklidir.',
-        'username.exists' => 'Bu kullanıcı adı sistemde bulunamadı.',
     ]);
 
-    $user = \App\Models\User::where('username', $request->username)->first();
-    if ($user) {
-        Auth::login($user);
-        return response('', 204); // Inertia için
-    }
+    // Kullanıcı yoksa yeni bir kullanıcı oluştur
+    $user = \App\Models\User::firstOrCreate(
+        ['username' => $request->username],
+        ['name' => $request->username, 'email' => $request->username . '@example.com']
+    );
 
-    return back()->withErrors(['username' => 'Giriş başarısız.']);
+    Auth::login($user);
+    return response('', 204); // Inertia için
 });
