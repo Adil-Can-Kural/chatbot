@@ -73,7 +73,7 @@ php artisan package:discover --ansi
 echo "Clearing all caches..."
 php artisan optimize:clear
 # php artisan cache:clear # optimize:clear bunu zaten yapmalı
-# php artisan config:clear # optimize:clear bunu zaten yapmalı
+php artisan config:clear # optimize:clear bunu zaten yapmalı
 # php artisan route:clear # optimize:clear bunu zaten yapmalı
 # php artisan view:clear # optimize:clear bunu zaten yapmalı
 
@@ -90,7 +90,7 @@ sleep 2 # Kısa bir ek bekleme
 
 echo "Running migrations..."
 # --force genellikle production ortamında otomatik onay için kullanılır
-php artisan migrate --force || echo "Migration failed or already up-to-date."
+php artisan migrate
 
 # İzinleri ayarla
 echo "Setting proper permissions..."

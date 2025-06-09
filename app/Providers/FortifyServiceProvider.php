@@ -11,6 +11,7 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\RateLimiter;
 use Illuminate\Support\ServiceProvider;
 use Laravel\Fortify\Fortify;
+use Illuminate\Support\Facades\Auth;
 
 class FortifyServiceProvider extends ServiceProvider
 {
@@ -36,10 +37,18 @@ class FortifyServiceProvider extends ServiceProvider
         Fortify::updateUserPasswordsUsing(UpdateUserPassword::class);
         Fortify::resetUserPasswordsUsing(ResetUserPassword::class);
 
-        RateLimiter::for('login', function (Request $request) {
-            $email = (string) $request->email;
+        Fortify::authenticateUsing(function (Request $request) {
+            $user = \App\Models\User::where('username', $request->username)->first();
 
-            return Limit::perMinute(5)->by($email.$request->ip());
+            if ($user) {
+                return $user;
+            }
+        });
+
+        RateLimiter::for('login', function (Request $request) {
+            $username = (string) $request->username;
+
+            return Limit::perMinute(5)->by($username.$request->ip());
         });
 
         RateLimiter::for('two-factor', function (Request $request) {

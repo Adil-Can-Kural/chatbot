@@ -1746,7 +1746,7 @@ const addSnappyMessage = (botName) => {
   } else if (selectedRoom.name === 'Nazli') {
     saveNazliChatHistory(selectedRoom.messages);
   }
-
+  
   scrollToBottomOfChat();
 };
 
