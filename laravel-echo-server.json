@@ -1,5 +1,5 @@
 {
-    "authHost": "http://localhost:8000",
+    "authHost": "https://chat-site-kfyc.onrender.com",
     "authEndpoint": "/broadcasting/auth",
     "clients": [],
     "database": "redis",
@@ -9,8 +9,8 @@
             "databasePath": "/database/laravel-echo-server.sqlite"
         }
     },
-    "devMode": true,
-    "host": "127.0.0.1",
+    "devMode": false,
+    "host": "0.0.0.0",
     "port": "6001",
     "protocol": "http",
     "socketio": {},
@@ -25,7 +25,7 @@
     },
     "apiOriginAllow": {
         "allowCors": true,
-        "allowOrigin": "http://localhost:8000",
+        "allowOrigin": "https://chat-site-kfyc.onrender.com",
         "allowMethods": "GET, POST",
         "allowHeaders": "Origin, Content-Type, X-Auth-Token, X-Requested-With, Accept, Authorization, X-CSRF-TOKEN, X-Socket-Id"
     }
