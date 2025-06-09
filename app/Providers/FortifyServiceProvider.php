@@ -14,6 +14,8 @@ use Laravel\Fortify\Fortify;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Validator;
 use Laravel\Fortify\Http\Requests\LoginRequest;
+use Inertia\Inertia;
+use Illuminate\Support\Facades\Response;
 
 class FortifyServiceProvider extends ServiceProvider
 {
@@ -66,13 +68,14 @@ class FortifyServiceProvider extends ServiceProvider
                 'username.exists' => 'Bu kullanıcı adı sistemde bulunamadı.',
             ]);
 
-            // Giriş işlemini Fortify'nin authenticateUsing fonksiyonu ile devam ettir
             $user = \App\Models\User::where('username', $request->username)->first();
             if ($user) {
                 Auth::login($user);
-                return redirect()->intended(config('fortify.home'));
+                // Inertia ile başarılı girişte frontend'e 204 döndür
+                return response('', 204);
             }
 
+            // Hata varsa Inertia ile error döndür
             return back()->withErrors(['username' => 'Giriş başarısız.']);
         });
     }
