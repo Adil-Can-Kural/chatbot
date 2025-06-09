@@ -29,14 +29,20 @@ const getCsrfToken = () => {
     return tokenElement ? tokenElement.getAttribute('content') : '';
 };
 
+const isSecure = window.location.protocol === 'https';
+
 window.Echo = new Echo({
     broadcaster: 'socket.io',
-    host: window.location.hostname + ':6001',
-    client: io,
+        wsHost: window.location.hostname,
+    wsPort: 6001,
+    wssPort: 6001, // Ensure this port is correctly mapped for WSS on Render
+    forceTLS: isSecure,
+    encrypted: isSecure,
+    client: io, // Ensure client is passed if not already
     transports: ['polling', 'websocket'],
     enabledTransports: ['polling', 'websocket'],
-    forceTLS: false,
-    encrypted: false,
+    
+
     disableStats: true,
     reconnection: true,
     reconnectionAttempts: 5,
