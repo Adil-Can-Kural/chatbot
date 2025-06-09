@@ -19,9 +19,9 @@ window.axios.defaults.headers.common['X-Requested-With'] = 'XMLHttpRequest';
  */
 
 import Echo from 'laravel-echo';
-import Pusher from 'pusher-js';
+import io from 'socket.io-client';
 
-window.Pusher = Pusher;
+window.io = io;
 
 // CSRF token'ını güvenli bir şekilde al
 const getCsrfToken = () => {
@@ -32,23 +32,24 @@ const getCsrfToken = () => {
 const isSecure = window.location.protocol === 'https';
 
 window.Echo = new Echo({
-    broadcaster: 'pusher',
-    key: import.meta.env.VITE_PUSHER_APP_KEY,
-    cluster: import.meta.env.VITE_PUSHER_APP_CLUSTER,
-    wsHost: import.meta.env.VITE_PUSHER_HOST ? import.meta.env.VITE_PUSHER_HOST : `ws-${import.meta.env.VITE_PUSHER_APP_CLUSTER}.pusher.com`,
-    wsPort: import.meta.env.VITE_PUSHER_PORT ?? 80,
-    wssPort: import.meta.env.VITE_PUSHER_PORT ?? 443,
-    forceTLS: (import.meta.env.VITE_PUSHER_SCHEME ?? 'https') === 'https',
-    enabledTransports: ['ws', 'wss'],
+    broadcaster: 'socket.io',
+        wsHost: window.location.hostname,
+    wsPort: 6001,
+    wssPort: 6001, // Ensure this port is correctly mapped for WSS on Render
+    forceTLS: isSecure,
+    encrypted: isSecure,
+    client: io, // Ensure client is passed if not already
+    transports: ['polling', 'websocket'],
+    enabledTransports: ['polling', 'websocket'],
+    
+
     disableStats: true,
     reconnection: true,
     reconnectionAttempts: 5,
     reconnectionDelay: 3000,
-    authEndpoint: '/broadcasting/auth', // Keep this for private/presence channels
     auth: {
         headers: {
-            'X-CSRF-TOKEN': getCsrfToken(),
-            'Accept': 'application/json' // Often needed for Laravel broadcasting auth
+            'X-CSRF-TOKEN': getCsrfToken()
         }
     }
 });

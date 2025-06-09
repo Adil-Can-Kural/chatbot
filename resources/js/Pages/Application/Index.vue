@@ -849,16 +849,15 @@ const askNazli = async (prompt) => {
       });
     }
     
-    // Groq API ile Llama 4 Scout modelini kullanarak istek gönderme
+    // DeepSeek API'ye istek gönderme
     try {
       const response = await axios.post('https://api.groq.com/openai/v1/chat/completions', {
-        model: "meta-llama/llama-4-scout-17b-16e-instruct",
+        model: "deepseek-r1-distill-llama-70b",
         messages: messages,
-        temperature: 1,
-        max_tokens: 1024,
-        top_p: 1,
-        stream: false,
-        stop: null
+        temperature: 0.7,
+        max_tokens: 150,
+        top_p: 0.95,
+        stream: false
       }, {
         headers: {
           'Authorization': `Bearer ${groqApiKey}`,
@@ -870,10 +869,10 @@ const askNazli = async (prompt) => {
         const aiResponse = response.data.choices[0].message.content;
         addNazliMessage(aiResponse);
       } else {
-        throw new Error("Groq API yanıtı beklenen formatta değil");
+        throw new Error("DeepSeek API yanıtı beklenen formatta değil");
       }
     } catch (apiError) {
-      console.error('Groq API hatası:', apiError);
+      console.error('DeepSeek API hatası:', apiError);
       addNazliMessage("Üzgünüm, şu anda yanıt veremiyorum. Daha sonra konuşabiliriz.");
     }
   } catch (error) {
@@ -886,33 +885,6 @@ const askNazli = async (prompt) => {
 
 // Nazlı'dan mesaj ekle
 const addNazliMessage = (message) => {
-  // Filtre: Düşünce veya içsel not mesajlarını gösterme
-  const unwantedPatterns = [
-    /^Düşünüyor[:：]/i,
-    /^İçsel Not[:：]/i,
-    /^Düşünce[:：]/i,
-    /^Thought[:：]/i,
-    /\[Düşünüyor.*\]/i,
-    /\[İçsel Not.*\]/i,
-    /\[Düşünce.*\]/i,
-    /\[Thought.*\]/i,
-    /sohbet ediyorum/i,
-    /kullanıcı.*dedi/i,
-    /şunu demiştim/i,
-    /şunu yapmalıyım/i,
-    /ne demeliyim/i,
-    /cevap vermeliyim/i,
-    /önceki mesaj/i,
-    /kullanıcı/i,
-    /düşünmeliyim/i,
-    /düşünüyorum/i,
-    /şunu sormalıyım/i,
-    /şunu yapabilirim/i,
-    /şunu demeliyim/i
-  ];
-  if (unwantedPatterns.some((pattern) => pattern.test(message))) {
-    return; // Bu mesajı gösterme
-  }
   isTyping.value = false;
   
   if (!selectedRoom.id) return;
