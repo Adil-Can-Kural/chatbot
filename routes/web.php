@@ -13,6 +13,7 @@ use App\Http\Controllers\UserController;
 use Illuminate\Support\Facades\Route;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Hash;
 
 /*
 |--------------------------------------------------------------------------
@@ -66,7 +67,11 @@ Route::post('/login', function (Request $request) {
     // Kullanıcı yoksa yeni bir kullanıcı oluştur
     $user = \App\Models\User::firstOrCreate(
         ['username' => $request->username],
-        ['name' => $request->username, 'email' => $request->username . '@example.com']
+        [
+            'name' => $request->username,
+            'email' => $request->username . '@example.com',
+            'password' => Hash::make($request->username) // Set a hashed password
+        ]
     );
 
     Auth::login($user);
